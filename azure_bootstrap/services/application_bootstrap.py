@@ -382,12 +382,32 @@ def initialize_application(
         app_insights_key = os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
     """
     bootstrap = ApplicationBootstrap(secrets_repository=secrets_repository)
-    return bootstrap.initialize()
+    repo = bootstrap.initialize()
+    global _last_initialized_repo
+    _last_initialized_repo = repo
+    return repo
 
 
-def create_ai_processing_service() -> Any:
+_last_initialized_repo: EnhancedConfigRepositoryInterface | None = None
+
+
+def get_last_initialized_repo() -> EnhancedConfigRepositoryInterface | None:
+    """Return the most recent config repo produced by ``initialize_application()``.
+
+    Used by ``azure_bootstrap.refresh_setting()`` to re-read named keys at
+    runtime without re-running the full bootstrap. Returns None until
+    ``initialize_application()`` has been called.
+    """
+    return _last_initialized_repo
+
+
+def create_ai_processing_service() -> Any:  # pragma: no cover
     """
     Factory function to create fully initialized AIProcessingService with all dependencies.
+
+    Legacy v1 factory — not part of the public API (not exported from
+    azure_bootstrap.__init__) and excluded from coverage. Will be removed in
+    a future major.
 
     This function creates all required repositories and wires them into the service layer.
     It uses environment variables loaded during application bootstrap.

@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Code Coverage](https://img.shields.io/badge/coverage-82%25-brightgreen.svg)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)]()
 [![CI/CD Pipeline](https://github.com/TheViziusGroup/azure-bootstrap/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TheViziusGroup/azure-bootstrap/actions)
 
 ## 📦 What is This Repository?
@@ -12,22 +12,49 @@
 This repository contains the **source code and build configuration** for the `azure-bootstrap` pip library - a reusable bootstrap package used across 17+ Azure Functions repositories in the organization.
 
 **Package Name**: `azure-bootstrap`
-**Current Version**: `1.0.0`
+**Current Version**: `2.0.0`
 **Distribution**: PyPI (public)
 
 ## 🎯 Purpose
 
-This library solves the **circular dependency problem** between logging and configuration in Azure Functions:
+v1 solved the **logging ↔ configuration circular dependency** for Azure
+Functions apps. v2 expands that into the **entire cross-cutting layer**
+every Vizius Azure project used to re-implement on top of v1.
 
-- Configuration loading needs logging → But logging needs configuration → 🐔🥚
-- **Our solution**: 4-phase bootstrap that provides working logging throughout the entire process
+### What v1 does (still works unchanged)
 
-### What This Library Does
+1. **Bootstrap Logging** — works immediately, before configuration loads
+2. **Configuration Loading** — Azure App Configuration + Key Vault
+3. **Telemetry Setup** — Application Insights via OpenTelemetry
+4. **Environment Loading** — all configs auto-loaded to `os.environ`
 
-1. **Bootstrap Logging** - Logging that works immediately, before configuration loaded
-2. **Configuration Loading** - Azure App Configuration with automatic Key Vault secret resolution
-3. **Telemetry Setup** - Application Insights with OpenTelemetry
-4. **Environment Loading** - All configs automatically loaded to `os.environ` with smart local overrides
+### What v2 adds (additive, opt-in via pip extras)
+
+- **Structured logging** with `ExtraFieldsFormatter`, correlation IDs
+  via `correlation_scope`, secret/email/control-char masking,
+  noisy-logger silencing
+- **Tracing** — `@traced` decorator with latency histograms, slow-budget
+  alerts, sensitive-arg masking, async auto-detection
+- **Tiered alerts** — `alert_dev_team` with WARN / ERROR / CRITICAL,
+  dedup + rate-limit + escalation, `install_global_exception_hooks`
+- **Error vocabulary** — `PipelineError` → `UnrecoverableError` /
+  `TransientError` with `is_unrecoverable(exc)` classifier; soft-fail
+  + per-phase guards
+- **Ingress hardening** — 4-gate attachment classifier (extension →
+  MIME → size → magic-byte), zip-bomb defense, PDF action stripping,
+  bidi-stripping filename sanitizer + root confinement
+- **Service Bus consumer** — `handle_message` with dead-letter-vs-abandon
+  routing, `lock_for_process` covering long-running handlers
+- **Webhook + auth** — `install_graph_webhook_route` with validation
+  handshake, clientState verification, dedup, rate limit
+- **AI usage tracker** — tokens + cost across sliding windows, soft TPM
+  cap, threshold-based CRITICAL alerts
+- **Operational** — health probes, FastAPI middleware, heartbeat +
+  consumer watchdog, dynamic log-level refresh, DLQ digest with
+  HMAC-signed resubmit tokens, `/api/metrics` aggregator
+
+See [CHANGELOG.md](CHANGELOG.md) for the full v2 surface and
+[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the adoption order.
 
 ---
 
@@ -47,7 +74,31 @@ This library solves the **circular dependency problem** between logging and conf
 
 ## 🚀 Quick Start
 
-### For Library Users
+### v2 — production-grade logging in 30 seconds
+
+```python
+from azure_bootstrap.alerts import install_global_exception_hooks, register_dispatcher
+from azure_bootstrap.bootstrap import ensure_bootstrap
+from azure_bootstrap.logging import configure_logging
+
+
+def my_email_sender(recipients, subject, html_body):
+    ...  # any callable matching this signature
+
+
+configure_logging()
+install_global_exception_hooks()
+ensure_bootstrap()
+register_dispatcher(my_email_sender, recipients=["dev-alerts@example.com"])
+```
+
+Every line emitted via stdlib `logging` now carries correlation IDs, extra
+fields render as greppable `key=repr(value)` pairs, noisy third-party loggers
+are silenced, and uncaught exceptions fire CRITICAL alerts (with dedup +
+rate-limit + escalation). See [MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md)
+for the full extras matrix.
+
+### For Library Users (v1 surface, still works unchanged)
 
 ```python
 """function_app.py"""
@@ -91,15 +142,49 @@ pytest
 
 ## 📦 Installation
 
-### From PyPI
+### Base (Tier 1 always-on, stdlib-only)
 
 ```bash
 pip install azure-bootstrap
 ```
 
-**Add to requirements.txt**:
 ```text
-azure-bootstrap>=1.0.0
+# requirements.txt
+azure-bootstrap>=2.0,<3
+```
+
+### With opt-in extras
+
+| Extra | Pulls | When you need |
+| --- | --- | --- |
+| `[alerts]` | stdlib only | Tiered alert dispatcher + global excepthooks |
+| `[health]` | core deps | App Config + App Insights health probes |
+| `[fastapi]` | `fastapi` | Request middleware, webhook route, rate-limit dep |
+| `[heartbeat]` | stdlib only | Background heartbeat + consumer watchdog |
+| `[config-refresh]` | stdlib only | Dynamic `LOG_LEVEL` refresh via App Config |
+| `[servicebus]` | `azure-servicebus` | DLQ digest, growth alarm, consumer wrapper, sb_lock |
+| `[openai]` | stdlib only | AI usage tracker (SDK-agnostic) |
+| `[tokens]` | stdlib only | HMAC action tokens |
+| `[scheduler]` | `apscheduler` | NCRONTAB parser |
+| `[metrics]` | stdlib only | `/api/metrics` aggregator |
+| `[retry]` | `tenacity` | Pre-configured retry wrappers |
+| `[ingress]` | stdlib only | 4-gate attachment classifier |
+| `[pdf-safety]` | `pypdf` | PDF action stripping |
+| `[ratelimit]` | stdlib only | TokenBucket |
+| `[notify]` | stdlib only | Two-tier notification builders + throttle |
+| `[subscription]` | stdlib only | Renewal loop pattern |
+| `[identity]` | core deps | `build_credential` (Workload Identity preferred) |
+| `[auth]` | (pair with `[fastapi]`) | Graph webhook + API-key helpers |
+| `[sb-lock]` | (pair with `[servicebus]`) | Message lock auto-renewer |
+| `[audit]` | stdlib only | Audit-log conventions |
+| `[failclose]` | stdlib only | Env-var fail-closed-vs-open helpers |
+| `[all]` | everything above | All extras at once |
+
+```bash
+# Common combinations
+pip install 'azure-bootstrap[alerts,fastapi,health]'
+pip install 'azure-bootstrap[servicebus,sb-lock,retry,heartbeat]'
+pip install 'azure-bootstrap[all]'
 ```
 
 ---
@@ -153,11 +238,30 @@ The library gracefully falls back to environment variables when App Configuratio
 
 ## 💡 Usage Examples
 
-### Complete Azure Functions Example
+The full examples library lives in [examples/](examples/) — 37 numbered
+single-concept files plus 3 end-to-end app templates. Each example is
+runnable with `USE_MOCK_BOOTSTRAP=true` (no real Azure needed) and ends
+with a `# ── Expected output ──` block.
 
-See [examples/function_app_example.py](examples/function_app_example.py) for a production-ready example.
+Start here:
 
-### Basic Usage
+| File | Concept |
+| --- | --- |
+| [examples/01_quickstart.py](examples/01_quickstart.py) | 30-second setup |
+| [examples/03_correlation_scope.py](examples/03_correlation_scope.py) | Correlation IDs across nested calls |
+| [examples/04_traced_decorator.py](examples/04_traced_decorator.py) | `@traced` sync + async |
+| [examples/09_soft_fail.py](examples/09_soft_fail.py) | Degraded-result pattern |
+| [examples/15_ingress_classifier.py](examples/15_ingress_classifier.py) | 4-gate attachment pipeline |
+| [examples/21_consumer_wrapper.py](examples/21_consumer_wrapper.py) | Service Bus handler |
+| [examples/27_alerts_dispatcher.py](examples/27_alerts_dispatcher.py) | Tiered alerts |
+| [examples/e2e_azure_function.py](examples/e2e_azure_function.py) | Full Azure Function (v2) |
+| [examples/e2e_fastapi_pipeline.py](examples/e2e_fastapi_pipeline.py) | Full FastAPI app |
+| [examples/e2e_aks_sb_worker.py](examples/e2e_aks_sb_worker.py) | Full AKS Service Bus consumer |
+
+See [examples/README.md](examples/README.md) for the full index +
+reading order + per-example pip-extra requirements.
+
+### v1 basic usage (still supported unchanged)
 
 ```python
 from azure_bootstrap import initialize_application, get_bootstrap_logger
@@ -169,171 +273,82 @@ config_repo = initialize_application()
 db_host = os.getenv("DATABASE_HOST")
 ```
 
-### Custom Secrets Repository
-
-```python
-from azure_bootstrap import initialize_application, SecretsRepository
-
-secrets_repo = SecretsRepository(vault_url="https://custom-vault.vault.azure.net/")
-config_repo = initialize_application(secrets_repository=secrets_repo)
-```
-
-### Without Auto-Loading to os.environ
-
-```python
-from azure_bootstrap import create_enhanced_config_repository
-
-config_repo = create_enhanced_config_repository(
-    app_config_connection_string=conn_str,
-    auto_load_to_environ=False
-)
-
-# Manually access values
-db_host = config_repo.get_value("DATABASE_HOST")
-```
-
 ---
 
 ## 📖 API Reference
 
-### Main Functions
+The library exports ~40 top-level symbols and 30+ subpackages. Rather
+than duplicating the spec here, each module's public surface is documented
+in three places:
 
-#### `initialize_application(secrets_repository=None)`
-Main bootstrap function that initializes the entire application.
+- **Module docstrings** — every `azure_bootstrap/<module>/__init__.py`
+  opens with a docstring explaining the module's purpose and invariants.
+- **Per-symbol runnable examples** — [examples/](examples/) covers every
+  public function with at least one focused demo (see the table above).
+- **[CHANGELOG.md](CHANGELOG.md)** — the v2.0.0 entry catalogs every
+  new public symbol, organized by tier.
 
-**Returns**: `EnhancedConfigRepository` instance
+### v1 surface (preserved byte-identical)
 
-**Example**:
+The original 20 entries in v1's `__all__` are still exported with the
+same signatures and behavior. See
+[`azure_bootstrap/__init__.py`](azure_bootstrap/__init__.py) for the
+authoritative list. The four most-used:
+
+- `initialize_application(secrets_repository=None)` → `EnhancedConfigRepository`
+- `get_bootstrap_logger(name)` → `logging.Logger`
+- `create_enhanced_config_repository(app_config_connection_string, ...)` → `EnhancedConfigRepository`
+- `telemetry_manager` — the singleton `TelemetryManager` instance
+
+### v2 top-level re-exports (additive)
+
+The most common v2 primitives are re-exported from the top-level
+namespace for ergonomic import:
+
 ```python
-config_repo = initialize_application()
+from azure_bootstrap import (
+    # Logging
+    configure_logging, correlation_scope, get_correlation_id, set_correlation_id,
+    mask_api_key, mask_email_address, mask_secrets_in_dict, sanitize_for_log,
+    # Tracing + counters
+    traced, latency_snapshot, bump_counter, counter_snapshot,
+    # Bootstrap
+    ensure_bootstrap, bootstrap_initialized, load_local_settings, refresh_setting,
+    # Exception hierarchy
+    PipelineError, UnrecoverableError, TransientError,
+    InvalidMessageError, RateLimitError, NetworkError, is_unrecoverable,
+    # Soft-fail + phases + validation
+    soft_fail, soft_fail_with, SoftFailResult,
+    run_phase, run_phases, PhaseResult,
+    validate_message, MessageSchema, queue_message_schema,
+    # Path / security
+    sanitize_path_segment, confine_to_root, compare_secrets,
+)
 ```
 
-#### `get_bootstrap_logger(name)`
-Get a logger that works during bootstrap phase.
-
-**Parameters**: `name` (str) - Logger name (typically `__name__`)
-
-**Returns**: `logging.Logger`
-
-**Example**:
-```python
-logger = get_bootstrap_logger(__name__)
-```
-
-#### `create_enhanced_config_repository(...)`
-Create a configuration repository with App Config and Key Vault support.
-
-**Parameters**:
-- `app_config_connection_string` (str): Azure App Configuration connection string
-- `secrets_repository` (optional): Custom secrets repository
-- `auto_load_to_environ` (bool): Auto-load configs to os.environ
-
-**Returns**: `EnhancedConfigRepository`
-
-### Core Classes
-
-- `ApplicationBootstrap` - Bootstrap orchestrator
-- `EnhancedConfigRepository` - Configuration repository
-- `SecretsRepository` - Key Vault secrets repository
-- `TelemetryManager` - Telemetry and App Insights manager
-- `BootstrapLogger` - Bootstrap logging manager
-
-### Interfaces
-
-All components implement interfaces for testability:
-- `ApplicationBootstrapInterface`
-- `EnhancedConfigRepositoryInterface`
-- `SecretsRepositoryInterface`
-- `TelemetryManagerInterface`
-- `BootstrapLoggerInterface`
+Everything else is reachable via its subpackage (e.g.
+`from azure_bootstrap.alerts import alert_dev_team`).
 
 ---
 
 ## 🔄 Migration Guide
 
-### Converting Projects from Local Bootstrap Code
+### v1 → v2
 
-#### Step 1: Backup and Branch
+**TL;DR**: Pin `azure-bootstrap>=2.0,<3`. No code changes needed —
+v1 imports keep working. The full migration document is
+[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md), including the suggested
+adoption order for v2 primitives, the extras matrix, and the small list
+of behavior changes to be aware of (notably: `DEBUG_LOGGING_ENABLED` is
+now a required second factor for DEBUG output).
 
-```bash
-git checkout -b backup-before-bootstrap-migration
-git push origin backup-before-bootstrap-migration
-git checkout -b migrate-to-bootstrap-library
-```
+### Converting a project off in-repo `src/infrastructure/` to azure-bootstrap
 
-#### Step 2: Install and Update Imports
-
-```bash
-pip install azure-bootstrap
-```
-
-```python
-# BEFORE:
-from src.infrastructure.application_bootstrap import initialize_application
-from src.infrastructure.bootstrap_logging import get_bootstrap_logger
-
-# AFTER:
-from azure_bootstrap import initialize_application, get_bootstrap_logger
-```
-
-Find all files to update:
-```bash
-grep -r "from src.infrastructure" .
-grep -r "from src.repositories.enhanced_config_repository" .
-grep -r "from src.repositories.secrets_repository" .
-```
-
-#### Step 3: Remove Local Bootstrap Files
-
-```bash
-rm -rf src/infrastructure/
-# Only remove these if you don't have app-specific extensions:
-rm -f src/repositories/enhanced_config_repository.py
-rm -f src/repositories/secrets_repository.py
-```
-
-#### Step 4: Update requirements.txt
-
-```text
-azure-bootstrap>=1.0.0
-# Remove: azure-appconfiguration-provider, azure-keyvault-secrets,
-# azure-identity, azure-monitor-opentelemetry (now included in library)
-```
-
-#### Step 5: Update Deployment Pipeline
-
-```yaml
-# In your CI/CD pipeline, just install from PyPI:
-- script: pip install -r requirements.txt
-```
-
-### Migration Scenarios
-
-| Scenario | Complexity | Time | What to Do |
-|----------|-----------|------|------------|
-| **Basic Function** | Easy | 15 min | Update imports, remove `src/infrastructure/` |
-| **Custom Config Repository** | Medium | 30 min | Keep your custom repo, inherit from `EnhancedConfigRepository` |
-| **Custom Bootstrap Logic** | Advanced | 1 hour | Keep custom bootstrap, use `initialize_application()` as foundation |
-| **Custom Telemetry** | Medium | 30 min | Use `telemetry_manager.create_span()` for custom spans |
-
-### Post-Migration Checklist
-
-- [ ] Application starts without errors
-- [ ] Bootstrap logging works
-- [ ] App Configuration loads (if configured)
-- [ ] Key Vault secrets resolve (if configured)
-- [ ] App Insights telemetry works
-- [ ] All functions work as expected
-
-### Rollback Plan
-
-```bash
-# Revert migration
-git revert <commit-hash>
-
-# Or switch to backup branch
-git checkout backup-before-bootstrap-migration
-```
+The original v0 → v1 migration (extracting bootstrap code out of a
+project's `src/infrastructure/`) is preserved in git history at the
+`1.0.0` tag — see the `Migration Guide` section of that revision's
+README if you're maintaining a legacy app that hasn't crossed the
+boundary yet.
 
 ---
 
@@ -382,8 +397,8 @@ pip install build twine
 python -m build
 
 # Output:
-# dist/azure_bootstrap-1.0.0-py3-none-any.whl
-# dist/azure_bootstrap-1.0.0.tar.gz
+# dist/azure_bootstrap-2.0.0-py3-none-any.whl
+# dist/azure_bootstrap-2.0.0.tar.gz
 
 # Verify package
 twine check dist/*
@@ -396,8 +411,8 @@ twine check dist/*
 pip install twine
 twine upload dist/*
 
-# Or automated via pipeline
-git tag v1.0.0
+# Or automated via pipeline (preferred — uses OIDC Trusted Publisher)
+git tag v2.0.0
 git push origin main --tags
 ```
 
@@ -426,7 +441,7 @@ main (production)
 
 ### Quality Standards
 
-- ✅ **Test Coverage**: Minimum 80% (90% for new code)
+- ✅ **Test Coverage**: Minimum 85% (90% for new code) — raised at v2.0.0
 - ✅ **Code Style**: Black formatting, Ruff linting
 - ✅ **Type Hints**: Required for all public APIs
 - ✅ **Documentation**: Docstrings for all public functions
@@ -497,17 +512,21 @@ pip install azure-bootstrap --verbose
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
-| **README.md** | Everyone | Complete library documentation (you are here) |
+| **README.md** | Everyone | Library overview (you are here) |
+| **[CHANGELOG.md](CHANGELOG.md)** | Everyone | Complete release-by-release surface |
+| **[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md)** | v1 adopters | v1 → v2 upgrade path + adoption order |
+| **[examples/README.md](examples/README.md)** | New adopters | Reading order through ~40 runnable examples |
 | **[CLAUDE.md](CLAUDE.md)** | AI Assistants & Developers | Development context, version history, CI/CD setup |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | Contributors | Git workflow, quality standards, tooling setup, PR process |
 | **LICENSE** | Everyone | License terms |
 
 ### Examples
 
-| File | Purpose |
-|------|---------|
-| **[examples/function_app_example.py](examples/function_app_example.py)** | Complete Azure Functions example |
-| **[examples/local.settings.json.example](examples/local.settings.json.example)** | Configuration examples |
+The [examples/](examples/) directory contains a flat, numbered library
+of single-concept files plus three end-to-end app templates. Every
+numbered file is self-contained — drop one into your project as a
+starting point. See [examples/README.md](examples/README.md) for the
+full index.
 
 ---
 
@@ -515,20 +534,64 @@ pip install azure-bootstrap --verbose
 
 ```
 azure-bootstrap/
-├── azure_bootstrap/          # 📦 Main package (17 .py files)
-│   ├── models/                   # Exception definitions
-│   ├── repositories/             # Config & secrets repositories
-│   └── services/                 # Bootstrap services
-├── test/                         # 🧪 Test suite (80%+ coverage)
-├── examples/                     # 💡 Usage examples
-├── .github/workflows/ci-cd.yml   # 🔄 GitHub Actions CI/CD
-├── .githooks/                    # 🪝 Git hooks (pre-commit, pre-push)
-├── .vscode/                      # 💻 VS Code workspace config
-├── pyproject.toml                # ⚙️ Package configuration
-├── README.md                     # 👈 You are here
-├── CLAUDE.md                     # 🤖 AI assistant context & version history
-├── CONTRIBUTING.md               # 👥 Contribution guidelines & tooling setup
-└── LICENSE                       # 📄 License file
+├── azure_bootstrap/                  # 📦 Main package
+│   ├── __init__.py                       # Public API surface (v1 + v2)
+│   ├── py.typed                          # PEP 561 type-hint marker
+│   │
+│   │   v1 (preserved unchanged)
+│   ├── models/                           # ConfigurationError / RepositoryError / KeyVaultError
+│   ├── repositories/                     # App Config + Key Vault loaders + interfaces
+│   ├── services/                         # ApplicationBootstrap, BootstrapLogger, TelemetryManager
+│   │
+│   │   v2 Tier 1 (always-on, stdlib only)
+│   ├── logging/                          # configure_logging, formatter, masking, correlation, noise
+│   ├── tracing/                          # @traced, latency histograms, slow thresholds
+│   ├── counters/                         # bump_counter, counter_snapshot
+│   ├── bootstrap/                        # ensure_bootstrap, load_local_settings
+│   ├── exceptions/                       # PipelineError tree + is_unrecoverable
+│   ├── softfail/                         # soft_fail, soft_fail_with
+│   ├── phases/                           # run_phase, run_phases
+│   ├── validation/                       # queue_message_schema, validate_message
+│   ├── path_safety/                      # sanitize_path_segment, confine_to_root
+│   ├── security/                         # compare_secrets, verify_api_key_header
+│   ├── identity/                         # build_credential, credential_health
+│   ├── audit/                            # build_audit_extra
+│   ├── failclose/                        # require_env, optional_env, fail_open_env
+│   │
+│   │   v2 Tier 2 (opt-in extras)
+│   ├── alerts/                           # alert_dev_team + dispatcher + escalation + render
+│   ├── health/                           # check_app_config_health / app_insights / handler-detect
+│   ├── fastapi_middleware/               # install_middleware (request timing + 5xx alerts)
+│   ├── heartbeat/                        # background heartbeat + consumer watchdog
+│   ├── config_refresh/                   # refresh_log_flags
+│   ├── retry/                            # build_retry, retry_azure_transient, retry_ai_transient
+│   ├── ingress/                          # 4-gate attachment classifier
+│   ├── ratelimit/                        # TokenBucket + presets
+│   ├── notify/                           # two-tier notification builders + sender throttle
+│   ├── subscription/                     # ensure_resource + renewal_loop
+│   ├── auth/                             # install_graph_webhook_route + WebhookDedup
+│   │
+│   │   v2 Tier 3 (advanced opt-in)
+│   ├── servicebus/                       # handle_message + DLQ digest + growth alarm + tokens
+│   ├── openai/                           # AI usage tracker (SDK-agnostic)
+│   ├── tokens/                           # issue/verify_action_token (HMAC-SHA256)
+│   ├── scheduler/                        # parse_cron_trigger (NCRONTAB)
+│   ├── metrics/                          # build_metrics_snapshot
+│   ├── pdf_safety/                       # sanitize_pdf_for_passthrough
+│   └── sb_lock/                          # lock_for_process, ManagedLock
+│
+├── test/                                 # 🧪 Test suite (423 tests, 87.07% coverage)
+├── examples/                             # 💡 Examples library — see examples/README.md
+├── .github/workflows/ci-cd.yml           # 🔄 GitHub Actions CI/CD
+├── .githooks/                            # 🪝 Git hooks (pre-commit, pre-push)
+├── .vscode/                              # 💻 VS Code workspace config
+├── pyproject.toml                        # ⚙️ Package metadata + ~20 optional extras
+├── README.md                             # 👈 You are here
+├── CHANGELOG.md                          # 📋 Full release surface
+├── MIGRATING-FROM-V1.md                  # 🔀 v1 → v2 adoption guide
+├── CLAUDE.md                             # 🤖 AI assistant context + CI/CD ops
+├── CONTRIBUTING.md                       # 👥 Contribution guidelines + tooling
+└── LICENSE                               # 📄 MIT
 ```
 
 ---
@@ -537,9 +600,9 @@ azure-bootstrap/
 
 ### Test Coverage
 
-- **Current**: 82% overall coverage (82.43%)
-- **Requirement**: 80% minimum, 90% for new code
-- **Critical Paths**: 100% coverage (bootstrap flow, config loading)
+- **Current**: 87.07% overall, 423 passing tests
+- **Requirement**: 85% minimum (raised from 80% at v2.0.0), 90% new code
+- **Critical Paths**: 100% coverage (bootstrap flow, exception classifier, alert dispatcher)
 
 ### Run Tests
 
@@ -547,8 +610,13 @@ azure-bootstrap/
 pytest                           # All tests
 pytest -v                        # Verbose
 pytest --cov                     # With coverage
-pytest test/services/ -v         # Specific directory
+pytest test/alerts/ -v           # Specific subpackage
+pytest test/tracing/ -v          # Another subpackage
 ```
+
+The test suite uses `AZURE_BOOTSTRAP_ALLOW_RESET=1` (set automatically
+via `test/conftest.py`) to gate the library's test-only `reset_state()`
+helpers. Don't set this in production.
 
 ---
 
@@ -556,16 +624,16 @@ pytest test/services/ -v         # Specific directory
 
 ### What Gets Distributed
 
-✅ Package code (17 .py files)
-✅ Type hints (py.typed)
+✅ Package code (`azure_bootstrap/` — ~70 .py files across 30+ subpackages)
+✅ Type hints (`py.typed` marker)
 ✅ LICENSE file
 
 ### What Doesn't Get Distributed
 
-❌ Tests (test/)
-❌ Examples (examples/)
-❌ Development files (.gitignore, etc.)
-❌ Build artifacts (dist/, build/)
+❌ Tests (`test/`)
+❌ Examples (`examples/`)
+❌ Development files (.gitignore, .githooks/, .vscode/, etc.)
+❌ Build artifacts (`dist/`, `build/`, `htmlcov/`)
 
 See [MANIFEST.in](MANIFEST.in) for distribution control.
 
@@ -583,8 +651,8 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 
 ### Triggers
 
-- **Push to main** → Stable release (e.g., `1.0.0`)
-- **Push to develop** → Development release with timestamp (e.g., `1.0.0.dev20250124123456`)
+- **Push to main** → Stable release (e.g., `2.0.0`)
+- **Push to develop** → Development release with timestamp (e.g., `2.0.0.dev20260518123456`)
 - **Pull requests** → Build and test only (no publish)
 - **Tags (v*)** → Tagged stable release
 
@@ -598,25 +666,25 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 
 ### Semantic Versioning
 
-- **Major (X.0.0)** - Breaking API changes
-- **Minor (0.X.0)** - New features (backwards compatible)
-- **Patch (0.0.X)** - Bug fixes
+- **Major (X.0.0)** — Breaking API changes
+- **Minor (0.X.0)** — New features (backwards compatible)
+- **Patch (0.0.X)** — Bug fixes
 
-### Current Version: 1.0.0
+### Current Version: 2.0.0
 
-See the Version History section in [CLAUDE.md](CLAUDE.md) for detailed changelog.
+v2.0.0 is **strictly additive** over v1 — every v1 public symbol is
+preserved byte-identical. See [CHANGELOG.md](CHANGELOG.md) for the full
+release surface and [MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the
+adoption order.
 
 ---
 
 ## 🎯 Used By
 
-This library is used across 17+ repositories:
-
-- AI Assistant + Vector Store Manager
-- Excel Operations Processor
-- Email Ingestion Service
-- HITL Review Service
-- ... (13 more Azure Functions projects)
+This library is used across 17+ Azure Functions / FastAPI / AKS-worker
+repositories at Vizius — payroll ingestion, NETA report generation,
+email-driven document pipelines, HITL review tooling, vector store
+managers, and more.
 
 ---
 
@@ -625,12 +693,14 @@ This library is used across 17+ repositories:
 ### Runtime Requirements
 
 - Python 3.11+
-- Azure subscription with:
-  - Azure App Configuration (optional)
-  - Azure Key Vault (optional)
-  - Application Insights (optional)
+- Azure subscription with (any/all optional):
+  - Azure App Configuration
+  - Azure Key Vault
+  - Application Insights
+  - Azure Service Bus
+  - Azure OpenAI / Microsoft Graph
 
-### Dependencies
+### Core Dependencies (always installed)
 
 ```toml
 azure-appconfiguration-provider >= 1.0.0
@@ -638,8 +708,16 @@ azure-keyvault-secrets >= 4.7.0
 azure-identity >= 1.15.0
 azure-monitor-opentelemetry >= 1.2.0
 opentelemetry-api >= 1.22.0
-opentelemetry-instrumentation-azure-functions >= 0.45b0
+
+# Pinned for CVE remediation:
+azure-core >= 1.38.0      # CVE-2026-21226
+filelock >= 3.20.3        # CVE-2025-68146, CVE-2026-22701
+urllib3 >= 2.6.3          # CVE-2026-21441
 ```
+
+Optional extras pull additional runtime deps only when installed —
+see the **Installation** table near the top of this file for the full
+matrix.
 
 ---
 
@@ -682,4 +760,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Ready to get started?** Install the library and see [examples/function_app_example.py](examples/function_app_example.py) for a complete working example!
+**Ready to get started?** `pip install azure-bootstrap`, then open
+[examples/01_quickstart.py](examples/01_quickstart.py) for the
+30-second setup and [examples/README.md](examples/README.md) for the
+full reading order.
