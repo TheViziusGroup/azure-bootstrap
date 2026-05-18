@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azure-bootstrap"
-version = "1.0.0"
+version = "2.0.0"
 description = "Production-ready Azure bootstrap library for App Configuration, Key Vault, and App Insights integration"
 readme = "README.md"
 license = {text = "MIT"}
@@ -46,7 +46,7 @@ dependencies = [
     # Security: pin minimum versions for transitive dependencies with known CVEs
     "azure-core>=1.38.0",  # CVE-2026-21226: code execution via deserialization
     "filelock>=3.20.3",  # CVE-2025-68146, CVE-2026-22701: symlink TOCTOU attacks
-    "urllib3>=2.6.3",  # CVE-2026-21441: decompression bomb on redirects
+    "urllib3>=2.7.0",  # CVE-2026-21441 + CVE-2026-44431/44432
 ]
 
 [project.optional-dependencies]
@@ -67,6 +67,40 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.1",
+    "fastapi>=0.110",
+    "httpx>=0.27",
+    "apscheduler>=3.10",
+    "tenacity>=8.0",
+    "pypdf>=4.0",
+]
+
+# v2 — opt-in extras. Apps install only what they use.
+alerts = []
+health = []
+fastapi = ["fastapi>=0.110"]
+heartbeat = []
+config-refresh = []
+servicebus = ["azure-servicebus>=7.11"]
+openai = []
+tokens = []
+scheduler = ["apscheduler>=3.10"]
+metrics = []
+# v2 Parts 2+3 — error handling, defensive coding, security
+retry = ["tenacity>=8.0"]
+ingress = []                            # stdlib-only
+pdf-safety = ["pypdf>=4.0"]
+ratelimit = []                          # stdlib-only
+notify = []                             # stdlib-only
+subscription = []                       # stdlib-only
+identity = []                           # azure-identity already in core deps
+auth = []                               # piggybacks on the `fastapi` extra
+sb-lock = []                            # piggybacks on the `servicebus` extra
+audit = []                              # stdlib-only
+failclose = []                          # stdlib-only
+all = [
+    "fastapi>=0.110",
+    "azure-servicebus>=7.11",
+    "apscheduler>=3.10",
 ]
 
 [project.urls]
@@ -78,11 +112,42 @@ Issues = "https://github.com/TheViziusGroup/azure-bootstrap/issues"
 [tool.setuptools]
 packages = [
     "azure_bootstrap",
+    "azure_bootstrap.alerts",
+    "azure_bootstrap.bootstrap",
+    "azure_bootstrap.config_refresh",
+    "azure_bootstrap.counters",
+    "azure_bootstrap.exceptions",
+    "azure_bootstrap.fastapi_middleware",
+    "azure_bootstrap.health",
+    "azure_bootstrap.heartbeat",
+    "azure_bootstrap.ingress",
+    "azure_bootstrap.logging",
+    "azure_bootstrap.metrics",
     "azure_bootstrap.models",
+    "azure_bootstrap.notify",
+    "azure_bootstrap.openai",
+    "azure_bootstrap.path_safety",
+    "azure_bootstrap.phases",
+    "azure_bootstrap.ratelimit",
     "azure_bootstrap.repositories",
     "azure_bootstrap.repositories.interfaces",
+    "azure_bootstrap.retry",
+    "azure_bootstrap.scheduler",
+    "azure_bootstrap.security",
     "azure_bootstrap.services",
+    "azure_bootstrap.softfail",
+    "azure_bootstrap.subscription",
+    "azure_bootstrap.validation",
+    "azure_bootstrap.audit",
+    "azure_bootstrap.auth",
+    "azure_bootstrap.failclose",
+    "azure_bootstrap.identity",
+    "azure_bootstrap.pdf_safety",
+    "azure_bootstrap.sb_lock",
     "azure_bootstrap.services.interfaces",
+    "azure_bootstrap.servicebus",
+    "azure_bootstrap.tokens",
+    "azure_bootstrap.tracing",
 ]
 
 [tool.setuptools.package-data]
@@ -146,10 +211,28 @@ ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex (we'll manage complexity ourselves)
+    "UP042", # prefer enum.StrEnum — we intentionally use (str, Enum) for back-compat
+    "B007",  # loop control variable — sometimes named for readability even when unused
+    "B904",  # raise ... from None — pedantic for fail-soft scripts (e.g. SystemExit in examples)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+# Examples set env vars (e.g. USE_MOCK_BOOTSTRAP) before importing the
+# library so module-level imports come AFTER the setenv calls. Treat
+# them as documentation — relax pure-stylistic rules:
+"examples/*.py" = [
+    "E402",   # module-level import not at top of file (setenv first by design)
+    "B007",   # loop control vars (`_` rename), readability fine in demos
+    "F841",   # unused local (`credential = build_credential()` etc — illustrative)
+    "F401",   # unused import (importorskip pattern probe)
+]
+# Tests use the pytest.importorskip pattern + setenv before importing
+# the module under test. Same kind of ordering constraint as examples.
+"test/*.py" = [
+    "E402",   # importorskip / setenv before module-under-test import
+    "C408",   # dict() vs literal — minor; test readability stays
+]
 
 [tool.mypy]
 python_version = "3.11"
@@ -160,7 +243,11 @@ disallow_incomplete_defs = false
 check_untyped_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+# Disabled at v2.0.0: many lazy-import sites use `# type: ignore[import-not-found]`
+# to protect against optional extras (fastapi, apscheduler, etc.) NOT being
+# installed in a downstream env. In the dev env those extras ARE installed so
+# mypy flags the ignore as "unused" — but it IS needed downstream.
+warn_unused_ignores = false
 warn_no_return = true
 follow_imports = "normal"
 ignore_missing_imports = true
@@ -192,7 +279,7 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-fail_under = 80
+fail_under = 85
 
 [tool.bandit]
 exclude_dirs = [".venv", "test", "build", "dist"]

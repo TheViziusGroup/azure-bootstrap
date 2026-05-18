@@ -306,9 +306,11 @@ mypy azure_bootstrap/
 
 #### Coverage Requirements
 
-- **Minimum**: 80% overall coverage
+- **Minimum**: 85% overall coverage (raised from 80% at v2.0.0)
+- **Current**: 87.07%, 423 passing tests
 - **New Code**: 90% coverage
-- **Critical Paths**: 100% coverage (bootstrap flow, config loading)
+- **Critical Paths**: 100% coverage (bootstrap flow, exception classifier,
+  alert dispatcher, magic-byte gate)
 
 ```bash
 # Run tests with coverage
@@ -317,6 +319,10 @@ pytest --cov=azure_bootstrap --cov-report=term-missing --cov-report=html
 # View HTML report
 open htmlcov/index.html
 ```
+
+`pytest` automatically sets `AZURE_BOOTSTRAP_ALLOW_RESET=1` via
+`test/conftest.py` so the library's gated `reset_state()` / `_reset_*`
+helpers work in tests. Don't set this in production code.
 
 #### Test Structure
 
@@ -642,7 +648,7 @@ Brief description of changes
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] All tests passing
-- [ ] Coverage >= 80%
+- [ ] Coverage >= 85% (90% for new code)
 
 ## Checklist
 - [ ] Code follows style guidelines
@@ -786,8 +792,11 @@ git push origin feature/your-feature
 
 ### Questions?
 
-- **Documentation**: See [CLAUDE.md](CLAUDE.md)
-- **Examples**: See [examples/](examples/)
+- **Library overview + extras**: [README.md](README.md)
+- **Examples (37 numbered + 3 e2e)**: [examples/README.md](examples/README.md)
+- **AI-assistant context + version history**: [CLAUDE.md](CLAUDE.md)
+- **Full release surface**: [CHANGELOG.md](CHANGELOG.md)
+- **v1 → v2 adoption**: [MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md)
 - **Issues**: Create an issue on GitHub
 - **Discussion**: Use Teams channel or email team
 

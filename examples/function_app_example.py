@@ -20,15 +20,16 @@ Configuration:
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import azure.functions as func
 
-from azure_bootstrap import initialize_application, get_bootstrap_logger
+from azure_bootstrap import get_bootstrap_logger, initialize_application
 
 # Global state for lazy initialization
 _bootstrap_initialized = False
 _logger = None
+
 
 def _ensure_bootstrap():
     """
@@ -123,16 +124,14 @@ def hello_world(req: func.HttpRequest) -> func.HttpResponse:
     # All configs are now in os.environ
     response_data = {
         "message": "Hello from Azure Functions with Azure Bootstrap!",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "environment": os.getenv("ENVIRONMENT", "dev"),
         "database_configured": bool(os.getenv("DATABASE_HOST")),
         "app_insights_configured": bool(os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")),
     }
 
     return func.HttpResponse(
-        json.dumps(response_data, indent=2),
-        mimetype="application/json",
-        status_code=200
+        json.dumps(response_data, indent=2), mimetype="application/json", status_code=200
     )
 
 
@@ -170,29 +169,35 @@ def get_config(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(
                 json.dumps({"error": f"Config key '{config_key}' not found"}),
                 mimetype="application/json",
-                status_code=404
+                status_code=404,
             )
 
         # Mask secrets
-        if any(secret_word in config_key.upper() for secret_word in ["PASSWORD", "SECRET", "KEY", "TOKEN"]):
+        if any(
+            secret_word in config_key.upper()
+            for secret_word in ["PASSWORD", "SECRET", "KEY", "TOKEN"]
+        ):
             value = "***REDACTED***"
 
         return func.HttpResponse(
             json.dumps({"key": config_key, "value": value}),
             mimetype="application/json",
-            status_code=200
+            status_code=200,
         )
     else:
         # Return list of available config keys (non-sensitive)
         config_keys = [
-            k for k in os.environ.keys()
-            if not any(secret_word in k.upper() for secret_word in ["PASSWORD", "SECRET", "KEY", "TOKEN"])
+            k
+            for k in os.environ.keys()
+            if not any(
+                secret_word in k.upper() for secret_word in ["PASSWORD", "SECRET", "KEY", "TOKEN"]
+            )
         ]
 
         return func.HttpResponse(
             json.dumps({"available_keys": sorted(config_keys)}, indent=2),
             mimetype="application/json",
-            status_code=200
+            status_code=200,
         )
 
 
@@ -214,7 +219,7 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     detailed = req.params.get("detailed", "false").lower() == "true"
 
     # Get current timestamp
-    current_time = datetime.now(timezone.utc).isoformat()
+    current_time = datetime.now(UTC).isoformat()
 
     # Basic health response
     health_response = {
@@ -227,9 +232,7 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     # If not detailed, return basic health immediately
     if not detailed:
         return func.HttpResponse(
-            json.dumps(health_response, indent=2),
-            mimetype="application/json",
-            status_code=200
+            json.dumps(health_response, indent=2), mimetype="application/json", status_code=200
         )
 
     # Detailed health checks
@@ -282,16 +285,12 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     status_code = 200 if overall_healthy else 503
 
     return func.HttpResponse(
-        json.dumps(health_response, indent=2),
-        mimetype="application/json",
-        status_code=status_code
+        json.dumps(health_response, indent=2), mimetype="application/json", status_code=status_code
     )
 
 
 @app.timer_trigger(
-    arg_name="timer",
-    schedule="0 */5 * * * *",  # Every 5 minutes
-    run_on_startup=False
+    arg_name="timer", schedule="0 */5 * * * *", run_on_startup=False  # Every 5 minutes
 )
 def scheduled_task(timer: func.TimerRequest) -> None:
     """
@@ -324,11 +323,7 @@ def scheduled_task(timer: func.TimerRequest) -> None:
     )
 
 
-@app.queue_trigger(
-    arg_name="msg",
-    queue_name="example-queue",
-    connection="AzureWebJobsStorage"
-)
+@app.queue_trigger(arg_name="msg", queue_name="example-queue", connection="AzureWebJobsStorage")
 def queue_processor(msg: func.QueueMessage) -> None:
     """
     Queue triggered function for async processing.
