@@ -12,7 +12,7 @@
 This repository contains the **source code and build configuration** for the `azure-bootstrap` pip library - a reusable bootstrap package used across 17+ Azure Functions repositories in the organization.
 
 **Package Name**: `azure-bootstrap`
-**Current Version**: `2.0.0`
+**Current Version**: `2.1.0`
 **Distribution**: PyPI (public)
 
 ## 🎯 Purpose
@@ -178,6 +178,8 @@ azure-bootstrap>=2.0,<3
 | `[sb-lock]` | (pair with `[servicebus]`) | Message lock auto-renewer |
 | `[audit]` | stdlib only | Audit-log conventions |
 | `[failclose]` | stdlib only | Env-var fail-closed-vs-open helpers |
+| `[transports]` | stdlib only | Logging transport registry (console / App Insights / Sumo Logic) |
+| `[sumologic]` | `requests` | Buffered POST to a Sumo Logic HTTP Source (urllib3 Retry, gzip, Retry-After) |
 | `[all]` | everything above | All extras at once |
 
 ```bash
@@ -397,8 +399,8 @@ pip install build twine
 python -m build
 
 # Output:
-# dist/azure_bootstrap-2.0.0-py3-none-any.whl
-# dist/azure_bootstrap-2.0.0.tar.gz
+# dist/azure_bootstrap-2.1.0-py3-none-any.whl
+# dist/azure_bootstrap-2.1.0.tar.gz
 
 # Verify package
 twine check dist/*
@@ -412,7 +414,7 @@ pip install twine
 twine upload dist/*
 
 # Or automated via pipeline (preferred — uses OIDC Trusted Publisher)
-git tag v2.0.0
+git tag v2.1.0
 git push origin main --tags
 ```
 
@@ -544,7 +546,8 @@ azure-bootstrap/
 │   ├── services/                         # ApplicationBootstrap, BootstrapLogger, TelemetryManager
 │   │
 │   │   v2 Tier 1 (always-on, stdlib only)
-│   ├── logging/                          # configure_logging, formatter, masking, correlation, noise
+│   ├── logging/                          # configure_logging, formatter, masking, correlation, noise, JsonLogFormatter
+│   ├── transports/                       # transport registry + console/app_insights/sumo_logic
 │   ├── tracing/                          # @traced, latency histograms, slow thresholds
 │   ├── counters/                         # bump_counter, counter_snapshot
 │   ├── bootstrap/                        # ensure_bootstrap, load_local_settings
@@ -580,12 +583,12 @@ azure-bootstrap/
 │   ├── pdf_safety/                       # sanitize_pdf_for_passthrough
 │   └── sb_lock/                          # lock_for_process, ManagedLock
 │
-├── test/                                 # 🧪 Test suite (423 tests, 87.07% coverage)
+├── test/                                 # 🧪 Test suite (469 tests, 87.48% coverage)
 ├── examples/                             # 💡 Examples library — see examples/README.md
 ├── .github/workflows/ci-cd.yml           # 🔄 GitHub Actions CI/CD
 ├── .githooks/                            # 🪝 Git hooks (pre-commit, pre-push)
 ├── .vscode/                              # 💻 VS Code workspace config
-├── pyproject.toml                        # ⚙️ Package metadata + ~20 optional extras
+├── pyproject.toml                        # ⚙️ Package metadata + ~24 optional extras
 ├── README.md                             # 👈 You are here
 ├── CHANGELOG.md                          # 📋 Full release surface
 ├── MIGRATING-FROM-V1.md                  # 🔀 v1 → v2 adoption guide
@@ -670,12 +673,13 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 - **Minor (0.X.0)** — New features (backwards compatible)
 - **Patch (0.0.X)** — Bug fixes
 
-### Current Version: 2.0.0
+### Current Version: 2.1.0
 
-v2.0.0 is **strictly additive** over v1 — every v1 public symbol is
-preserved byte-identical. See [CHANGELOG.md](CHANGELOG.md) for the full
-release surface and [MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the
-adoption order.
+v2.1.0 adds the logging transport layer (console / App Insights / Sumo Logic)
+and is **strictly additive** — the public API surface is unchanged. Like v2.0.0,
+every v1 public symbol is preserved byte-identical. See
+[CHANGELOG.md](CHANGELOG.md) for the full release surface and
+[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the adoption order.
 
 ---
 
