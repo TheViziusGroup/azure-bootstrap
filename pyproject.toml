@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azure-bootstrap"
-version = "2.0.0"
+version = "2.1.0"
 description = "Production-ready Azure bootstrap library for App Configuration, Key Vault, and App Insights integration"
 readme = "README.md"
 license = {text = "MIT"}
@@ -97,10 +97,14 @@ auth = []                               # piggybacks on the `fastapi` extra
 sb-lock = []                            # piggybacks on the `servicebus` extra
 audit = []                              # stdlib-only
 failclose = []                          # stdlib-only
+# v2.1 — logging transport layer
+transports = []                         # stdlib-only (registry + console/app-insights factories)
+sumologic = ["requests>=2.32.0"]        # buffered POST via requests + urllib3 Retry
 all = [
     "fastapi>=0.110",
     "azure-servicebus>=7.11",
     "apscheduler>=3.10",
+    "requests>=2.32.0",
 ]
 
 [project.urls]
@@ -148,6 +152,7 @@ packages = [
     "azure_bootstrap.servicebus",
     "azure_bootstrap.tokens",
     "azure_bootstrap.tracing",
+    "azure_bootstrap.transports",
 ]
 
 [tool.setuptools.package-data]

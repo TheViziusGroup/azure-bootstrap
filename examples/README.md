@@ -84,12 +84,13 @@ The files are numbered roughly by how foundational they are — start at
 | 35 | [35_openai_tracker.py](35_openai_tracker.py) | Track AI cost + tokens across sliding windows; alert on threshold breach |
 | 36 | [36_scheduler.py](36_scheduler.py) | Parse 5- or 6-field NCRONTAB into an APScheduler CronTrigger |
 | 37 | [37_metrics_endpoint.py](37_metrics_endpoint.py) | Expose latency + counters + AI usage at `/api/metrics` |
+| 38 | [38_logging_transports.py](38_logging_transports.py) | Toggle console / App Insights / Sumo Logic log transports independently via a registry |
 
 ## By tier
 
 | Tier 1 (always on, stdlib only) | Tier 2 (opt-in) | Tier 3 (advanced opt-in) |
 | --- | --- | --- |
-| 01, 02, 03, 04, 05, 06, 07 | 17, 27, 28, 29, 30, 31, 32 | 20, 21, 25, 26, 33, 34, 35, 36, 37 |
+| 01, 02, 03, 04, 05, 06, 07 | 17, 27, 28, 29, 30, 31, 32, 38 | 20, 21, 25, 26, 33, 34, 35, 36, 37 |
 | 08, 09, 10, 11, 12, 13 | 14, 15, 16, 18, 19 |  |
 | 22, 23, 24 |  |  |
 

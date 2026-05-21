@@ -5,6 +5,57 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] — 2026-05-21
+
+Added a **logging transport layer** — a standardized way to choose where logs
+go. **Strictly additive**: every v1 and v2.0 symbol (including
+`configure_logging()` and `TelemetryManager`) is unchanged, and the public API
+surface is unchanged. The registry and the console / App Insights transports are
+stdlib-only; the Sumo Logic transport requires the new `[sumologic]` extra, which
+pulls `requests` (its `urllib3` Retry adapter handles backoff + `Retry-After`).
+`requests` is imported lazily, so `import azure_bootstrap` still works without
+the extra.
+
+### Added
+- **Transport registry** (`azure_bootstrap.transports`): `register_transport`,
+  `enable_transport`, `disable_transport`, `list_transports`, and the
+  convenience `configure_transports(console=…, app_insights=…, sumo_logic=…)`.
+  A transport is a named `logging.Handler` factory; enable attaches it to the
+  root logger, disable detaches (and closes) it. Idempotent.
+- **Three first-class transports**, each independently toggleable from code or
+  via a per-transport env flag (`CONSOLE_LOGGING_ENABLED`,
+  `APP_INSIGHTS_LOGGING_ENABLED`, `SUMO_LOGIC_LOGGING_ENABLED`); explicit code
+  params win over env.
+  - `console` — the standard `StreamHandler` + `ExtraFieldsFormatter` stack.
+  - `app_insights` — delegates to the existing v1 `TelemetryManager`
+    (`configure_azure_monitor`). _Limitation:_ disabling only detaches the
+    OpenTelemetry handler from the root logger; it does not tear down the
+    underlying exporter.
+  - `sumo_logic` — `SumoLogicHandler`: buffered, background-thread, batched
+    newline-delimited-JSON POST to a Sumo Logic HTTP Source. Never blocks, never
+    raises; flushes on interval / buffer-size / `atexit`; bounded buffer drops
+    oldest under backpressure. Ships via a `requests.Session` whose mounted
+    `urllib3` `Retry` adapter retries 408/429/5xx with exponential backoff +
+    jitter, **honors `Retry-After`** (so 429 throttling is resent, not silently
+    dropped), and does not retry 401/other-4xx. Batches are capped by record
+    count **and** byte size (~1 MB, Sumo's documented sweet spot) and gzip-
+    compressed above a threshold (`Content-Encoding: gzip`). Supports auth-header
+    mode (`x-sumo-token`) and per-request `X-Sumo-Fields`. Bumps
+    `sumologic.transport.{posts,ok,error,throttled,dropped,records}` counters.
+    Configured via `SUMO_LOGIC_COLLECTOR_URL` (+ optional
+    `SUMO_LOGIC_COLLECTOR_TOKEN` / `_SOURCE_CATEGORY` / `_SOURCE_HOST` /
+    `_FIELDS` / `_BATCH_SIZE` / `_MAX_BATCH_BYTES` / `_GZIP_THRESHOLD` /
+    `_FLUSH_INTERVAL` / `_MAX_BUFFER` / `_TIMEOUT`).
+- **`JsonLogFormatter`** (`azure_bootstrap.logging`) — one JSON object per
+  record (timestamp, level, logger, message, exception, correlation fields, and
+  masked `extra={}` fields), reusing the existing masking + `CorrelationFilter`.
+- `configure_transports` applies `effective_log_level()` to the root logger so
+  enabled transports receive records at the configured level.
+- New extras: `transports` (stdlib-only, `= []`) and `sumologic`
+  (`["requests>=2.32.0"]`).
+- Example [38_logging_transports.py](examples/38_logging_transports.py).
+- Test-only `_reset_transports()` gated by `AZURE_BOOTSTRAP_ALLOW_RESET=1`.
+
 ## [2.0.0] — 2026-05-18
 
 Major expansion: bakes in the cross-cutting logging, observability, alerting,

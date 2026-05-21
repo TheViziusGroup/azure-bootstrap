@@ -23,6 +23,7 @@ from azure_bootstrap.logging.formatter import (
     ExtraFieldsFormatter,
     LoggingExtraConflictError,
 )
+from azure_bootstrap.logging.jsonformatter import JsonLogFormatter
 from azure_bootstrap.logging.masking import (
     _looks_sensitive,
     _safe_repr,
@@ -43,6 +44,7 @@ from azure_bootstrap.logging.noise import (
 __all__ = [
     "CorrelationFilter",
     "ExtraFieldsFormatter",
+    "JsonLogFormatter",
     "LoggingExtraConflictError",
     "_STDLIB_LOG_RECORD_KEYS",
     "_looks_sensitive",

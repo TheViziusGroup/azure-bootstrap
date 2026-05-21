@@ -7,7 +7,7 @@
 This repository contains the **Azure Bootstrap Library** - a production-ready pip package that provides unified bootstrap functionality for Azure Functions applications across multiple organizations.
 
 **Package Name**: `azure-bootstrap`
-**Version**: 2.0.0
+**Version**: 2.1.0
 **Language**: Python 3.11+
 **Distribution**: PyPI (public)
 
@@ -61,7 +61,8 @@ azure-bootstrap/
 │   ├── services/                     # ApplicationBootstrap, BootstrapLogger, TelemetryManager
 │   │
 │   │  ── v2 Tier 1 (always-on, stdlib only) ───────────────────────────
-│   ├── logging/                      # configure_logging, formatter, masking, correlation, noise
+│   ├── logging/                      # configure_logging, formatter, masking, correlation, noise, JsonLogFormatter
+│   ├── transports/                   # transport registry + console/app_insights/sumo_logic
 │   ├── tracing/                      # @traced, latency, slow_thresholds, timed_operation
 │   ├── counters/                     # bump_counter, counter_snapshot
 │   ├── bootstrap/                    # ensure_bootstrap, load_local_settings
@@ -98,7 +99,7 @@ azure-bootstrap/
 │   ├── pdf_safety/                   # sanitize_pdf_for_passthrough
 │   └── sb_lock/                      # lock_for_process, ManagedLock
 │
-├── test/                             # Test suite (423 tests, 87.07% coverage)
+├── test/                             # Test suite (469 tests, 87.48% coverage)
 │   ├── alerts/ audit/ auth/ bootstrap/ config_refresh/ counters/
 │   ├── exceptions/ failclose/ fastapi/ health/ heartbeat/ identity/
 │   ├── ingress/ logging/ metrics/ notify/ openai/ path_safety/ phases/
@@ -109,7 +110,7 @@ azure-bootstrap/
 │
 ├── examples/                         # Examples library (see examples/README.md)
 │   ├── README.md                         # Index + reading order
-│   ├── 01_quickstart.py … 37_metrics_endpoint.py
+│   ├── 01_quickstart.py … 38_logging_transports.py
 │   ├── e2e_azure_function.py             # v2 successor to function_app_example
 │   ├── e2e_fastapi_pipeline.py
 │   ├── e2e_aks_sb_worker.py
@@ -119,10 +120,10 @@ azure-bootstrap/
 ├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD
 ├── .githooks/                        # Git hooks (pre-commit, pre-push)
 ├── .vscode/                          # VS Code workspace config
-├── pyproject.toml                    # Package metadata + ~22 optional extras
+├── pyproject.toml                    # Package metadata + ~24 optional extras
 ├── MANIFEST.in                       # Distribution file control
 ├── README.md                         # Library overview + extras matrix
-├── CHANGELOG.md                      # Release-by-release surface (v1.0.0, v2.0.0)
+├── CHANGELOG.md                      # Release-by-release surface (v1.0.0, v2.0.0, v2.1.0)
 ├── MIGRATING-FROM-V1.md              # v1 → v2 adoption guide
 ├── CLAUDE.md                         # AI assistant & developer context (this file)
 ├── CONTRIBUTING.md                   # Contribution guidelines
@@ -307,8 +308,8 @@ pip install build
 python -m build
 
 # Output:
-# dist/azure_bootstrap-2.0.0-py3-none-any.whl
-# dist/azure_bootstrap-2.0.0.tar.gz
+# dist/azure_bootstrap-2.1.0-py3-none-any.whl
+# dist/azure_bootstrap-2.1.0.tar.gz
 ```
 
 ### Publish to PyPI
@@ -436,7 +437,7 @@ def test_with_mock(mock_telemetry):
 ### Coverage Requirements
 
 - Minimum: 85% overall coverage (raised from 80% at v2.0.0)
-- Current: 87.07% overall, 423 passing tests
+- Current: 87.48% overall, 469 passing tests
 - New code: 90% coverage
 - Run: `pytest --cov=azure_bootstrap --cov-report=term-missing`
 
@@ -587,7 +588,7 @@ filelock >= 3.20.3        # CVE-2025-68146, CVE-2026-22701
 urllib3 >= 2.6.3          # CVE-2026-21441
 ```
 
-### Optional Dependencies (v2.0.0 — ~22 extras)
+### Optional Dependencies (~24 extras)
 
 See [pyproject.toml](pyproject.toml) and the **Installation** table in
 [README.md](README.md) for the full extras matrix. Highlights:
@@ -601,6 +602,10 @@ servicebus = ["azure-servicebus>=7.11"]
 
 # Tier 3 (advanced opt-in)
 pdf-safety = ["pypdf>=4.0"]
+
+# v2.1 — logging transport layer
+transports = []                    # stdlib-only (registry + console/app-insights)
+sumologic  = ["requests>=2.32.0"]  # requests + urllib3 Retry (lazy-imported)
 
 # Aggregate
 all = ["fastapi>=0.110", "azure-servicebus>=7.11", "apscheduler>=3.10",
@@ -684,7 +689,7 @@ def hello(req):
   here for any user-visible change
 - Ensure backwards compatibility (SemVer): bump major only when v1's
   20-entry `__all__` actually breaks
-- Test thoroughly before suggesting changes; library has 423 tests and
+- Test thoroughly before suggesting changes; library has 469 tests and
   the suite runs in seconds — no excuse to skip it
 - When adding a new module, add a numbered example to
   [examples/](examples/) and a row in
@@ -796,6 +801,38 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), adhere
 
 The authoritative changelog lives at [CHANGELOG.md](CHANGELOG.md). The
 short summaries below are kept for AI-assistant context.
+
+### [2.1.0] - 2026-05-21
+
+Logging **transport layer**. Strictly additive — `configure_logging()` and
+`TelemetryManager` unchanged. New `azure_bootstrap.transports` subpackage: a
+registry (`register_transport` / `enable_transport` / `disable_transport` /
+`list_transports`) plus `configure_transports(console=…, app_insights=…,
+sumo_logic=…)`. A transport is a named `logging.Handler` factory; enable attaches
+to the root logger, disable detaches+closes. Each toggleable from code (wins) or
+per-transport env flag (`CONSOLE_LOGGING_ENABLED` / `APP_INSIGHTS_LOGGING_ENABLED`
+/ `SUMO_LOGIC_LOGGING_ENABLED`).
+
+- `console` — existing `StreamHandler` + `ExtraFieldsFormatter`.
+- `app_insights` — delegates to v1 `TelemetryManager`; disable only detaches the
+  OTel handler (exporter not torn down).
+- `sumo_logic` — `SumoLogicHandler`: buffered background-thread batched
+  newline-delimited-JSON POST to a Sumo HTTP Source; never blocks/raises; flush
+  on interval/size/atexit; bounded buffer; `sumologic.transport.*` counters
+  (incl. `throttled`). Ships via `requests` + a `urllib3` `Retry` adapter
+  (408/429/5xx backoff+jitter, honors `Retry-After`, no 401 retry); byte-size-
+  capped batches (~1 MB) with gzip above a threshold; auth-header (`x-sumo-token`)
+  + `X-Sumo-Fields` support. `requests` imported lazily (the `[sumologic]` extra);
+  factory returns `None` when it's absent. Config via `SUMO_LOGIC_COLLECTOR_URL`
+  (+ optional token/source/tuning vars).
+
+Also adds `JsonLogFormatter` (re-exported from `azure_bootstrap` and
+`azure_bootstrap.logging`), extras `transports` (stdlib-only) + `sumologic`
+(`requests`), example `38_logging_transports.py`, and test-only
+`_reset_transports()` gated by
+`AZURE_BOOTSTRAP_ALLOW_RESET=1`. New top-level symbols: `configure_transports`,
+`register_transport`, `enable_transport`, `disable_transport`, `list_transports`,
+`JsonLogFormatter`.
 
 ### [2.0.0] - 2026-05-18
 

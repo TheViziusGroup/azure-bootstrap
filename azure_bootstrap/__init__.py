@@ -25,7 +25,7 @@ Quick Start:
 For detailed usage, see: https://github.com/TheViziusGroup/azure-bootstrap
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "The Vizius Group"
 __license__ = "MIT"
 
@@ -47,6 +47,7 @@ from azure_bootstrap.exceptions import RateLimitError as RateLimitError
 from azure_bootstrap.exceptions import TransientError as TransientError
 from azure_bootstrap.exceptions import UnrecoverableError as UnrecoverableError
 from azure_bootstrap.exceptions import is_unrecoverable as is_unrecoverable
+from azure_bootstrap.logging import JsonLogFormatter as JsonLogFormatter
 from azure_bootstrap.logging import configure_logging as configure_logging
 from azure_bootstrap.logging import correlation_scope as correlation_scope
 from azure_bootstrap.logging import get_correlation_id as get_correlation_id
@@ -118,6 +119,11 @@ from azure_bootstrap.softfail import soft_fail as soft_fail
 from azure_bootstrap.softfail import soft_fail_with as soft_fail_with
 from azure_bootstrap.tracing import latency_snapshot as latency_snapshot
 from azure_bootstrap.tracing import traced as traced
+from azure_bootstrap.transports import configure_transports as configure_transports
+from azure_bootstrap.transports import disable_transport as disable_transport
+from azure_bootstrap.transports import enable_transport as enable_transport
+from azure_bootstrap.transports import list_transports as list_transports
+from azure_bootstrap.transports import register_transport as register_transport
 from azure_bootstrap.validation import MessageSchema as MessageSchema
 from azure_bootstrap.validation import queue_message_schema as queue_message_schema
 from azure_bootstrap.validation import validate_message as validate_message
@@ -229,4 +235,11 @@ __all__ = [
     "soft_fail",
     "soft_fail_with",
     "validate_message",
+    # v2.1 additions — logging transport layer
+    "JsonLogFormatter",
+    "configure_transports",
+    "disable_transport",
+    "enable_transport",
+    "list_transports",
+    "register_transport",
 ]
