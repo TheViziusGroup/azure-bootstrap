@@ -5,6 +5,29 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] — 2026-06-29
+
+Security patch. **No source code changes** — only dependency version floors are
+raised to remediate known CVEs in transitive and optional dependencies. The
+public API, behavior, and the 469-test / 87.48 %-coverage suite are unchanged.
+
+### Security
+
+- **`cryptography>=48.0.1,<49`** (new core pin) — GHSA-537c-gmf6-5ccf. Pulled in
+  transitively via `azure-identity` / `msal`; the `<49` cap keeps it within
+  msal's `cryptography<49` requirement.
+- **`pyjwt>=2.13.0`** (new core pin) — PYSEC-2026-175 through -179. Pulled in
+  via `msal`; stays under msal's `PyJWT<3` cap.
+- **`pypdf>=6.13.3`** (was `>=4.0`) in the `[pdf-safety]` extra — CVE-2026-48155,
+  -48156, -48735, -49460, -49461, -54530, -54531 and GHSA-jm82-fx9c-mx94.
+- **`starlette>=1.3.1`** (new pin) in the `[fastapi]` and `[all]` extras —
+  PYSEC-2026-248/-249, CVE-2026-48817/-48818. `starlette` is FastAPI's transitive
+  dependency; FastAPI's floor (`>=0.110`) already permits it.
+
+Not pinned: `msgpack` (GHSA-6v7p-g79w-8964) and `pip` (PYSEC-2026-196) flagged by
+`pip-audit` are dev-tooling dependencies (via `CacheControl` / the installer), not
+part of azure-bootstrap's runtime dependency tree.
+
 ## [2.1.1] — 2026-06-29
 
 Documentation-only release. **No code changes** — the package contents, public
