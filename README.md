@@ -3,7 +3,7 @@
 > Production-ready Azure bootstrap library for seamless integration of Azure App Configuration, Key Vault, and Application Insights into Azure Functions applications.
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/LICENSE)
 [![Code Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)]()
 [![CI/CD Pipeline](https://github.com/TheViziusGroup/azure-bootstrap/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TheViziusGroup/azure-bootstrap/actions)
 
@@ -53,8 +53,8 @@ every Vizius Azure project used to re-implement on top of v1.
   consumer watchdog, dynamic log-level refresh, DLQ digest with
   HMAC-signed resubmit tokens, `/api/metrics` aggregator
 
-See [CHANGELOG.md](CHANGELOG.md) for the full v2 surface and
-[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the adoption order.
+See [CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md) for the full v2 surface and
+[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md) for the adoption order.
 
 ---
 
@@ -95,7 +95,7 @@ register_dispatcher(my_email_sender, recipients=["dev-alerts@example.com"])
 Every line emitted via stdlib `logging` now carries correlation IDs, extra
 fields render as greppable `key=repr(value)` pairs, noisy third-party loggers
 are silenced, and uncaught exceptions fire CRITICAL alerts (with dedup +
-rate-limit + escalation). See [MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md)
+rate-limit + escalation). See [MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md)
 for the full extras matrix.
 
 ### For Library Users (v1 surface, still works unchanged)
@@ -240,7 +240,7 @@ The library gracefully falls back to environment variables when App Configuratio
 
 ## 💡 Usage Examples
 
-The full examples library lives in [examples/](examples/) — 37 numbered
+The full examples library lives in [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) — 38 numbered
 single-concept files plus 3 end-to-end app templates. Each example is
 runnable with `USE_MOCK_BOOTSTRAP=true` (no real Azure needed) and ends
 with a `# ── Expected output ──` block.
@@ -249,18 +249,18 @@ Start here:
 
 | File | Concept |
 | --- | --- |
-| [examples/01_quickstart.py](examples/01_quickstart.py) | 30-second setup |
-| [examples/03_correlation_scope.py](examples/03_correlation_scope.py) | Correlation IDs across nested calls |
-| [examples/04_traced_decorator.py](examples/04_traced_decorator.py) | `@traced` sync + async |
-| [examples/09_soft_fail.py](examples/09_soft_fail.py) | Degraded-result pattern |
-| [examples/15_ingress_classifier.py](examples/15_ingress_classifier.py) | 4-gate attachment pipeline |
-| [examples/21_consumer_wrapper.py](examples/21_consumer_wrapper.py) | Service Bus handler |
-| [examples/27_alerts_dispatcher.py](examples/27_alerts_dispatcher.py) | Tiered alerts |
-| [examples/e2e_azure_function.py](examples/e2e_azure_function.py) | Full Azure Function (v2) |
-| [examples/e2e_fastapi_pipeline.py](examples/e2e_fastapi_pipeline.py) | Full FastAPI app |
-| [examples/e2e_aks_sb_worker.py](examples/e2e_aks_sb_worker.py) | Full AKS Service Bus consumer |
+| [examples/01_quickstart.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/01_quickstart.py) | 30-second setup |
+| [examples/03_correlation_scope.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/03_correlation_scope.py) | Correlation IDs across nested calls |
+| [examples/04_traced_decorator.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/04_traced_decorator.py) | `@traced` sync + async |
+| [examples/09_soft_fail.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/09_soft_fail.py) | Degraded-result pattern |
+| [examples/15_ingress_classifier.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/15_ingress_classifier.py) | 4-gate attachment pipeline |
+| [examples/21_consumer_wrapper.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/21_consumer_wrapper.py) | Service Bus handler |
+| [examples/27_alerts_dispatcher.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/27_alerts_dispatcher.py) | Tiered alerts |
+| [examples/e2e_azure_function.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_azure_function.py) | Full Azure Function (v2) |
+| [examples/e2e_fastapi_pipeline.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_fastapi_pipeline.py) | Full FastAPI app |
+| [examples/e2e_aks_sb_worker.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_aks_sb_worker.py) | Full AKS Service Bus consumer |
 
-See [examples/README.md](examples/README.md) for the full index +
+See [examples/README.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/README.md) for the full index +
 reading order + per-example pip-extra requirements.
 
 ### v1 basic usage (still supported unchanged)
@@ -285,16 +285,16 @@ in three places:
 
 - **Module docstrings** — every `azure_bootstrap/<module>/__init__.py`
   opens with a docstring explaining the module's purpose and invariants.
-- **Per-symbol runnable examples** — [examples/](examples/) covers every
+- **Per-symbol runnable examples** — [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) covers every
   public function with at least one focused demo (see the table above).
-- **[CHANGELOG.md](CHANGELOG.md)** — the v2.0.0 entry catalogs every
-  new public symbol, organized by tier.
+- **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** — the v2.0.0 and v2.1.0 entries catalog
+  every new public symbol, organized by tier.
 
 ### v1 surface (preserved byte-identical)
 
 The original 20 entries in v1's `__all__` are still exported with the
 same signatures and behavior. See
-[`azure_bootstrap/__init__.py`](azure_bootstrap/__init__.py) for the
+[`azure_bootstrap/__init__.py`](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/azure_bootstrap/__init__.py) for the
 authoritative list. The four most-used:
 
 - `initialize_application(secrets_repository=None)` → `EnhancedConfigRepository`
@@ -339,7 +339,7 @@ Everything else is reachable via its subpackage (e.g.
 
 **TL;DR**: Pin `azure-bootstrap>=2.0,<3`. No code changes needed —
 v1 imports keep working. The full migration document is
-[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md), including the suggested
+[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md), including the suggested
 adoption order for v2 primitives, the extras matrix, and the small list
 of behavior changes to be aware of (notably: `DEBUG_LOGGING_ENABLED` is
 now a required second factor for DEBUG output).
@@ -467,7 +467,7 @@ pytest --cov=azure_bootstrap --cov-report=term-missing
 # All checks must pass ✅
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for complete guidelines.
+See [CONTRIBUTING.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CONTRIBUTING.md) for complete guidelines.
 
 ---
 
@@ -515,19 +515,19 @@ pip install azure-bootstrap --verbose
 | Document | Audience | Purpose |
 |----------|----------|---------|
 | **README.md** | Everyone | Library overview (you are here) |
-| **[CHANGELOG.md](CHANGELOG.md)** | Everyone | Complete release-by-release surface |
-| **[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md)** | v1 adopters | v1 → v2 upgrade path + adoption order |
-| **[examples/README.md](examples/README.md)** | New adopters | Reading order through ~40 runnable examples |
-| **[CLAUDE.md](CLAUDE.md)** | AI Assistants & Developers | Development context, version history, CI/CD setup |
-| **[CONTRIBUTING.md](CONTRIBUTING.md)** | Contributors | Git workflow, quality standards, tooling setup, PR process |
+| **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** | Everyone | Complete release-by-release surface |
+| **[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md)** | v1 adopters | v1 → v2 upgrade path + adoption order |
+| **[examples/README.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/README.md)** | New adopters | Reading order through 42 runnable examples |
+| **[CLAUDE.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CLAUDE.md)** | AI Assistants & Developers | Development context, version history, CI/CD setup |
+| **[CONTRIBUTING.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CONTRIBUTING.md)** | Contributors | Git workflow, quality standards, tooling setup, PR process |
 | **LICENSE** | Everyone | License terms |
 
 ### Examples
 
-The [examples/](examples/) directory contains a flat, numbered library
+The [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) directory contains a flat, numbered library
 of single-concept files plus three end-to-end app templates. Every
 numbered file is self-contained — drop one into your project as a
-starting point. See [examples/README.md](examples/README.md) for the
+starting point. See [examples/README.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/README.md) for the
 full index.
 
 ---
@@ -603,7 +603,7 @@ azure-bootstrap/
 
 ### Test Coverage
 
-- **Current**: 87.07% overall, 423 passing tests
+- **Current**: 87.48% overall, 469 passing tests
 - **Requirement**: 85% minimum (raised from 80% at v2.0.0), 90% new code
 - **Critical Paths**: 100% coverage (bootstrap flow, exception classifier, alert dispatcher)
 
@@ -638,7 +638,7 @@ helpers. Don't set this in production.
 ❌ Development files (.gitignore, .githooks/, .vscode/, etc.)
 ❌ Build artifacts (`dist/`, `build/`, `htmlcov/`)
 
-See [MANIFEST.in](MANIFEST.in) for distribution control.
+See [MANIFEST.in](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MANIFEST.in) for distribution control.
 
 ---
 
@@ -659,9 +659,9 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 - **Pull requests** → Build and test only (no publish)
 - **Tags (v*)** → Tagged stable release
 
-See [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml) for workflow configuration.
+See [.github/workflows/ci-cd.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/ci-cd.yml) for workflow configuration.
 
-For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md](CLAUDE.md).
+For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CLAUDE.md).
 
 ---
 
@@ -678,8 +678,8 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 v2.1.0 adds the logging transport layer (console / App Insights / Sumo Logic)
 and is **strictly additive** — the public API surface is unchanged. Like v2.0.0,
 every v1 public symbol is preserved byte-identical. See
-[CHANGELOG.md](CHANGELOG.md) for the full release surface and
-[MIGRATING-FROM-V1.md](MIGRATING-FROM-V1.md) for the adoption order.
+[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md) for the full release surface and
+[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md) for the adoption order.
 
 ---
 
@@ -752,7 +752,7 @@ matrix.
 
 ## 📄 License
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/LICENSE) for details.
 
 ---
 
@@ -765,6 +765,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 ---
 
 **Ready to get started?** `pip install azure-bootstrap`, then open
-[examples/01_quickstart.py](examples/01_quickstart.py) for the
-30-second setup and [examples/README.md](examples/README.md) for the
+[examples/01_quickstart.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/01_quickstart.py) for the
+30-second setup and [examples/README.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/README.md) for the
 full reading order.

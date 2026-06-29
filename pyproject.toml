@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azure-bootstrap"
-version = "2.1.0"
+version = "2.1.1"
 description = "Production-ready Azure bootstrap library for App Configuration, Key Vault, and App Insights integration"
 readme = "README.md"
 license = {text = "MIT"}
