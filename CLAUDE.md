@@ -7,7 +7,7 @@
 This repository contains the **Azure Bootstrap Library** - a production-ready pip package that provides unified bootstrap functionality for Azure Functions applications across multiple organizations.
 
 **Package Name**: `azure-bootstrap`
-**Version**: 2.1.0
+**Version**: 2.1.1
 **Language**: Python 3.11+
 **Distribution**: PyPI (public)
 
@@ -116,6 +116,9 @@ azure-bootstrap/
 │   ├── e2e_aks_sb_worker.py
 │   ├── function_app_example.py           # v1 reference (kept for back-compat)
 │   └── local.settings.json.example
+│
+├── docs/                             # Long-form usage guide
+│   └── USAGE.md                          # End-to-end Python + TypeScript/Next.js walkthrough (v2.1)
 │
 ├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD
 ├── .githooks/                        # Git hooks (pre-commit, pre-push)
@@ -801,6 +804,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), adhere
 
 The authoritative changelog lives at [CHANGELOG.md](CHANGELOG.md). The
 short summaries below are kept for AI-assistant context.
+
+### [2.1.1] - 2026-06-29
+
+Documentation-only release. No code changes — the public API, behavior, and
+test surface are byte-identical to 2.1.0 (released to PyPI; that version is
+immutable, so the doc corrections ship as a patch). Changes:
+
+- README links rewritten from repo-relative to absolute
+  `https://github.com/TheViziusGroup/azure-bootstrap/blob/main/…` URLs so they
+  resolve on the PyPI project page (which renders the README with no repo base
+  URL); relative links worked only on GitHub.
+- Refreshed stale metrics in README and CONTRIBUTING (469 tests / 87.48 %
+  coverage) and example counts (38 numbered files) in README and
+  MIGRATING-FROM-V1.
+- Added `docs/USAGE.md` (end-to-end Python + TypeScript/Next.js usage guide) to
+  the tracked tree.
 
 ### [2.1.0] - 2026-05-21
 

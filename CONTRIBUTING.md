@@ -307,7 +307,7 @@ mypy azure_bootstrap/
 #### Coverage Requirements
 
 - **Minimum**: 85% overall coverage (raised from 80% at v2.0.0)
-- **Current**: 87.07%, 423 passing tests
+- **Current**: 87.48%, 469 passing tests
 - **New Code**: 90% coverage
 - **Critical Paths**: 100% coverage (bootstrap flow, exception classifier,
   alert dispatcher, magic-byte gate)

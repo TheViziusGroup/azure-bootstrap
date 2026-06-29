@@ -5,6 +5,33 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] — 2026-06-29
+
+Documentation-only release. **No code changes** — the package contents, public
+API, runtime behavior, and the 469-test / 87.48 %-coverage suite are
+byte-identical to 2.1.0. Because 2.1.0 is already published to PyPI (and PyPI
+versions are immutable — a version can never be re-uploaded, even after
+deletion), these documentation corrections ship as a patch release.
+
+### Fixed
+
+- **README links now resolve on PyPI.** Every repo-relative link in `README.md`
+  (e.g. `](CHANGELOG.md)`, `](examples/)`) was rewritten to an absolute
+  `https://github.com/TheViziusGroup/azure-bootstrap/blob/main/…` (or `/tree/`
+  for directories) URL. PyPI renders the README as the project long-description
+  with no repository base URL, so relative links silently 404 there; they only
+  worked on GitHub. Absolute URLs resolve on both surfaces.
+- Refreshed stale figures: README and CONTRIBUTING now state **469 passing
+  tests / 87.48 % coverage** (were 423 / 87.07 %); README and
+  MIGRATING-FROM-V1 now reference **38 numbered examples** (were 37) and 42
+  total runnable examples.
+
+### Added
+
+- `docs/USAGE.md` — a long-form end-to-end usage guide (Python and
+  TypeScript/Next.js) covering the v2.1 logging-transport layer — added to the
+  tracked tree.
+
 ## [2.1.0] — 2026-05-21
 
 Added a **logging transport layer** — a standardized way to choose where logs

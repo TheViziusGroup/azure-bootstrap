@@ -98,7 +98,7 @@ pip install 'azure-bootstrap[all]'
 
 ## Examples library
 
-The [examples/](examples/) directory holds 37 numbered single-concept
+The [examples/](examples/) directory holds 38 numbered single-concept
 files and 3 end-to-end app templates. Each numbered file demonstrates
 one v2 primitive in 50–200 lines. See
 [examples/README.md](examples/README.md) for the reading order; the
