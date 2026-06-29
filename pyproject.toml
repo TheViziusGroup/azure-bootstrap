@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azure-bootstrap"
-version = "2.1.2"
+version = "3.0.0"
 description = "Production-ready Azure bootstrap library for App Configuration, Key Vault, and App Insights integration"
 readme = "README.md"
 license = {text = "MIT"}
@@ -69,8 +69,17 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.1",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.98",
+    "mongomock>=4.1",
     "fastapi>=0.110",
     "httpx>=0.27",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pymongo>=4.6",
+    "azure-eventhub>=5.11",
+    "azure-communication-email>=1.0",
+    "azure-storage-blob>=12.19",
     "apscheduler>=3.10",
     "tenacity>=8.0",
     "pypdf>=6.13.3",  # CVE remediation: see pdf-safety extra
@@ -103,13 +112,48 @@ failclose = []                          # stdlib-only
 # v2.1 — logging transport layer
 transports = []                         # stdlib-only (registry + console/app-insights factories)
 sumologic = ["requests>=2.32.0"]        # buffered POST via requests + urllib3 Retry
+panther = ["requests>=2.32.0"]
+bloblog = ["azure-storage-blob>=12.19"]
+sqllog = ["sqlalchemy>=2.0"]
+nosqllog = ["pymongo>=4.6"]
+nosqllog-cosmos = ["azure-cosmos>=4.5"]
+adxlog = ["azure-kusto-ingest>=4.0", "azure-kusto-data>=4.0"]
+eventhubslog = ["azure-eventhub>=5.11"]
+logging-all = [
+    "requests>=2.32.0",
+    "azure-storage-blob>=12.19",
+    "sqlalchemy>=2.0",
+    "pymongo>=4.6",
+    "azure-kusto-ingest>=4.0",
+    "azure-kusto-data>=4.0",
+    "azure-eventhub>=5.11",
+]
+db = ["sqlalchemy>=2.0", "alembic>=1.13"]
+documentdb = ["pymongo>=4.6"]
+email = ["azure-communication-email>=1.0"]
+http = ["requests>=2.32.0"]
+http-async = ["httpx>=0.27"]
+governance = []
+aks = []
 all = [
     "fastapi>=0.110",
     "starlette>=1.3.1",  # CVE remediation: see fastapi extra
     "azure-servicebus>=7.11",
     "apscheduler>=3.10",
     "requests>=2.32.0",
+    "azure-storage-blob>=12.19",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pymongo>=4.6",
+    "azure-communication-email>=1.0",
+    "azure-kusto-ingest>=4.0",
+    "azure-kusto-data>=4.0",
+    "azure-eventhub>=5.11",
+    "httpx>=0.27",
 ]
+
+[project.scripts]
+azbootstrap = "azure_bootstrap.contrib.scaffold:main"
 
 [project.urls]
 Homepage = "https://github.com/TheViziusGroup/azure-bootstrap"
@@ -157,10 +201,19 @@ packages = [
     "azure_bootstrap.tokens",
     "azure_bootstrap.tracing",
     "azure_bootstrap.transports",
+    "azure_bootstrap.db",
+    "azure_bootstrap.db.migrations",
+    "azure_bootstrap.email",
+    "azure_bootstrap.http",
+    "azure_bootstrap.documentdb",
+    "azure_bootstrap.aks",
+    "azure_bootstrap.governance",
+    "azure_bootstrap.contrib",
 ]
 
 [tool.setuptools.package-data]
 azure_bootstrap = ["py.typed"]
+"azure_bootstrap.contrib" = ["templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
@@ -169,6 +222,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
     "unit: Unit tests",
+    "integration: Local I/O integration tests (SQLite, mongomock, Azurite)",
 ]
 addopts = [
     "--verbose",
@@ -241,6 +295,13 @@ ignore = [
 "test/*.py" = [
     "E402",   # importorskip / setenv before module-under-test import
     "C408",   # dict() vs literal — minor; test readability stays
+]
+"test/v3/test_transport_contracts.py" = [
+    "I001",   # isort places test.v3 before stdlib; ruff disagrees — both valid
+]
+"test/integration/*.py" = [
+    "E402",
+    "I001",
 ]
 
 [tool.mypy]

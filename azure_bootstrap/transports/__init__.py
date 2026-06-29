@@ -5,7 +5,7 @@ transport builds its handler and attaches it to the root logger; disabling
 removes (and closes) it. The registry is the single source of truth for what is
 currently attached, so enable/disable are idempotent.
 
-Three transports are pre-registered:
+Ten transports are pre-registered:
 
 ==============  ===============================  ==============================
 name            sink                             toggle env flag
@@ -13,6 +13,13 @@ name            sink                             toggle env flag
 ``console``     stdout ``StreamHandler``          ``CONSOLE_LOGGING_ENABLED``
 ``app_insights``Azure Monitor / App Insights      ``APP_INSIGHTS_LOGGING_ENABLED``
 ``sumo_logic``  Sumo Logic HTTP Source            ``SUMO_LOGIC_LOGGING_ENABLED``
+``panther``     Panther SIEM HTTP Source          ``PANTHER_LOGGING_ENABLED``
+``file``        Rotating local log file           ``FILE_LOGGING_ENABLED``
+``blob``        Azure Blob Storage                ``BLOB_LOGGING_ENABLED``
+``sql``         SQL database table                ``SQL_LOGGING_ENABLED``
+``nosql``       NoSQL / Cosmos DB collection      ``NOSQL_LOGGING_ENABLED``
+``adx``         Azure Data Explorer               ``ADX_LOGGING_ENABLED``
+``event_hubs``  Azure Event Hubs                  ``EVENTHUBS_LOGGING_ENABLED``
 ==============  ===============================  ==============================
 
 Typical usage::
@@ -52,11 +59,25 @@ _ENV_FLAGS: dict[str, str] = {
     "console": "CONSOLE_LOGGING_ENABLED",
     "app_insights": "APP_INSIGHTS_LOGGING_ENABLED",
     "sumo_logic": "SUMO_LOGIC_LOGGING_ENABLED",
+    "panther": "PANTHER_LOGGING_ENABLED",
+    "file": "FILE_LOGGING_ENABLED",
+    "blob": "BLOB_LOGGING_ENABLED",
+    "sql": "SQL_LOGGING_ENABLED",
+    "nosql": "NOSQL_LOGGING_ENABLED",
+    "adx": "ADX_LOGGING_ENABLED",
+    "event_hubs": "EVENTHUBS_LOGGING_ENABLED",
 }
 _DEFAULTS: dict[str, bool] = {
     "console": True,
     "app_insights": False,
     "sumo_logic": False,
+    "panther": False,
+    "file": False,
+    "blob": False,
+    "sql": False,
+    "nosql": False,
+    "adx": False,
+    "event_hubs": False,
 }
 
 
@@ -134,11 +155,31 @@ def configure_transports(
     console: bool | None = None,
     app_insights: bool | None = None,
     sumo_logic: bool | None = None,
+    panther: bool | None = None,
+    file: bool | None = None,
+    blob: bool | None = None,
+    sql: bool | None = None,
+    nosql: bool | None = None,
+    adx: bool | None = None,
+    event_hubs: bool | None = None,
 ) -> None:
-    """Enable/disable the three built-in transports. Idempotent and re-runnable.
+    """Enable/disable the ten built-in transports. Idempotent and re-runnable.
 
     For each sink, an explicit boolean wins; otherwise the per-transport env flag
-    is consulted (defaults: console on, App Insights and Sumo Logic off).
+    is consulted (defaults: console on, all others off).
+
+    ==============  ==============================
+    parameter       env flag
+    ==============  ==============================
+    console         CONSOLE_LOGGING_ENABLED
+    app_insights    APP_INSIGHTS_LOGGING_ENABLED
+    sumo_logic      SUMO_LOGIC_LOGGING_ENABLED
+    panther         PANTHER_LOGGING_ENABLED
+    file            FILE_LOGGING_ENABLED
+    blob            BLOB_LOGGING_ENABLED
+    sql             SQL_LOGGING_ENABLED
+    nosql           NOSQL_LOGGING_ENABLED
+    ==============  ==============================
 
     Also sets the root logger to ``effective_log_level()`` so enabled transports
     actually receive records (the stdlib root default of WARNING would otherwise
@@ -146,7 +187,18 @@ def configure_transports(
     contract shared with ``configure_logging()``.
     """
     logging.getLogger().setLevel(effective_log_level())
-    params = {"console": console, "app_insights": app_insights, "sumo_logic": sumo_logic}
+    params = {
+        "console": console,
+        "app_insights": app_insights,
+        "sumo_logic": sumo_logic,
+        "panther": panther,
+        "file": file,
+        "blob": blob,
+        "sql": sql,
+        "nosql": nosql,
+        "adx": adx,
+        "event_hubs": event_hubs,
+    }
     for name, param in params.items():
         if _resolve(param, _ENV_FLAGS[name], _DEFAULTS[name]):
             enable_transport(name)

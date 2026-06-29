@@ -5,6 +5,40 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] — 2026-06-29
+
+**Additive flagship release.** No existing import paths, symbols, signatures, or
+defaults changed. v1/v2 code runs unchanged; opt into new extras and env flags.
+
+### Added — Pillar 1 (transports)
+
+- Shared internal `_BufferedShipper` base; rebased `sumologic`, `panther`, `blob`, `sql`, `nosql` handlers.
+- New transports: `panther`, `file`, `blob`, `sql`, `nosql`, `adx`, `event_hubs`.
+- Extended `configure_transports()` for all ten sinks.
+
+### Added — Pillar 2 (runtime)
+
+- `azure_bootstrap.db` — SQLAlchemy 2 engine/session, `get_db`, `db_health`, RLS helpers.
+- `azure_bootstrap.db.migrations` — Alembic conventions (`upgrade_to_head`, env.py template).
+- `azure_bootstrap.db.outbox` — transactional outbox with `drain_outbox`.
+- `azure_bootstrap.email` — `AcsEmailSender` (ACS).
+- `azure_bootstrap.http` — hardened `requests` client + optional `httpx` async stack.
+- `azure_bootstrap.documentdb` — Mongo/Cosmos client factory.
+- `azure_bootstrap.aks` — SIGTERM handlers, `build_info`, KEDA metric helper, leader election.
+- `azure_bootstrap.governance` — budget guard + usage tracker.
+- Extensions: `identity` tenant cred + cache, `audit` chaining, `auth` HMAC verify,
+  `ratelimit` multi-unit, `servicebus` async/replay/ws router.
+
+### Added — Pillar 3 (assets)
+
+- `azure_bootstrap.contrib.templates/*` — Terraform, Bicep, Helm, GitOps, CI/CD, policy starters.
+- `azbootstrap` console script (`scaffold`, `list`, `version`).
+
+### New pip extras
+
+`panther`, `bloblog`, `sqllog`, `nosqllog`, `adxlog`, `eventhubslog`, `logging-all`,
+`db`, `documentdb`, `email`, `http`, `http-async`, `governance`, `aks`.
+
 ## [2.1.2] — 2026-06-29
 
 Security patch. **No source code changes** — only dependency version floors are

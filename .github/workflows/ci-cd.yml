@@ -46,13 +46,13 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install build twine
 
-      - name: Install package with test dependencies
+      - name: Install package with test + all extras
         run: |
-          pip install -e ".[test]"
+          pip install -e ".[test,all]"
 
       - name: Run tests with coverage
         run: |
-          pytest test/ --verbose --cov=azure_bootstrap --cov-report=xml --cov-report=html --cov-report=term --junitxml=test-results.xml
+          pytest test/ --verbose --cov=azure_bootstrap --cov-report=xml --cov-report=html --cov-report=term --junitxml=test-results.xml -m "not integration"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -107,6 +107,42 @@ jobs:
         with:
           name: python-package
           path: dist/
+
+  test-integration:
+    name: Integration Tests (SQLite / mongomock / Azurite)
+    runs-on: ubuntu-latest
+
+    services:
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - 10000:10000
+        options: >-
+          --entrypoint azurite
+          azurite --skipApiVersionCheck -l /data
+          --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+
+    env:
+      AZURITE_BLOB_CONNECTION_STRING: >-
+        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install package with test + all extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test,all]"
+
+      - name: Run integration tests
+        run: |
+          pytest test/integration/ -m integration --verbose --no-cov
 
   tag-release:
     name: Tag Release

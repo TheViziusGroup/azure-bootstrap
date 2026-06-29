@@ -25,7 +25,7 @@ Quick Start:
 For detailed usage, see: https://github.com/TheViziusGroup/azure-bootstrap
 """
 
-__version__ = "2.1.2"
+__version__ = "3.0.0"
 __author__ = "The Vizius Group"
 __license__ = "MIT"
 
@@ -35,11 +35,17 @@ __license__ = "MIT"
 import logging as _stdlib_logging
 import os as _os
 
+# v3.0.0 additions (opt-in subpackages re-exported for convenience)
+from azure_bootstrap.aks import build_info as build_info
+from azure_bootstrap.audit import verify_chain as verify_chain
+from azure_bootstrap.auth import verify_hmac_signature as verify_hmac_signature
 from azure_bootstrap.bootstrap import bootstrap_initialized as bootstrap_initialized
 from azure_bootstrap.bootstrap import ensure_bootstrap as ensure_bootstrap
 from azure_bootstrap.bootstrap import load_local_settings as load_local_settings
 from azure_bootstrap.counters import bump_counter as bump_counter
 from azure_bootstrap.counters import counter_snapshot as counter_snapshot
+from azure_bootstrap.db.outbox import drain_outbox as drain_outbox
+from azure_bootstrap.email import AcsEmailSender as AcsEmailSender
 from azure_bootstrap.exceptions import InvalidMessageError as InvalidMessageError
 from azure_bootstrap.exceptions import NetworkError as NetworkError
 from azure_bootstrap.exceptions import PipelineError as PipelineError
@@ -47,6 +53,14 @@ from azure_bootstrap.exceptions import RateLimitError as RateLimitError
 from azure_bootstrap.exceptions import TransientError as TransientError
 from azure_bootstrap.exceptions import UnrecoverableError as UnrecoverableError
 from azure_bootstrap.exceptions import is_unrecoverable as is_unrecoverable
+from azure_bootstrap.governance import budget_guard as budget_guard
+from azure_bootstrap.governance import track_usage as track_usage
+from azure_bootstrap.http import build_session as build_session
+from azure_bootstrap.http import request_with_retry as request_with_retry
+from azure_bootstrap.identity import build_tenant_credential as build_tenant_credential
+from azure_bootstrap.identity import (
+    build_tenant_credential_cached as build_tenant_credential_cached,
+)
 from azure_bootstrap.logging import JsonLogFormatter as JsonLogFormatter
 from azure_bootstrap.logging import configure_logging as configure_logging
 from azure_bootstrap.logging import correlation_scope as correlation_scope
@@ -242,4 +256,16 @@ __all__ = [
     "enable_transport",
     "list_transports",
     "register_transport",
+    # v3.0.0 — db, outbox, email, http, documentdb, aks, governance, identity, audit
+    "build_tenant_credential",
+    "build_tenant_credential_cached",
+    "verify_chain",
+    "budget_guard",
+    "track_usage",
+    "build_session",
+    "request_with_retry",
+    "build_info",
+    "drain_outbox",
+    "AcsEmailSender",
+    "verify_hmac_signature",
 ]

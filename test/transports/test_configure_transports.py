@@ -49,7 +49,27 @@ def test_sumo_enabled_via_env(monkeypatch) -> None:
         configure_transports(sumo_logic=False)
 
 
-def test_idempotent_rerun_single_handler() -> None:
+def test_panther_enabled_via_env(monkeypatch) -> None:
+    os.environ["PANTHER_API_HOST"] = "https://panther.test"
+    os.environ["PANTHER_LOG_SOURCE_ID"] = "src"
+    os.environ["PANTHER_LOG_SOURCE_TOKEN"] = "tok"
+    os.environ["PANTHER_LOGGING_ENABLED"] = "1"
+    configure_transports()
+    try:
+        assert list_transports()["panther"]["enabled"] is True
+    finally:
+        configure_transports(panther=False)
+
+
+def test_file_enabled_via_env(tmp_path, monkeypatch) -> None:
+    os.environ["FILE_LOG_PATH"] = str(tmp_path / "app.jsonl")
+    os.environ["FILE_LOGGING_ENABLED"] = "1"
+    configure_transports()
+    try:
+        assert list_transports()["file"]["enabled"] is True
+    finally:
+        configure_transports(file=False)
+
     configure_transports(console=True)
     root = logging.getLogger()
     n = len(root.handlers)

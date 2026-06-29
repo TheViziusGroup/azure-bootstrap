@@ -221,3 +221,6 @@ __marimo__/
 # Local Artifacts
 .claude
 .vscode
+
+# Plans
+docs/*-PLAN.md

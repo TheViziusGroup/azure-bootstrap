@@ -1,4 +1,4 @@
-"""Built-in transport factories: console and App Insights.
+"""Built-in transport factories: console, App Insights, and five optional sinks.
 
 Registered into the transport registry at import time. Each factory returns a
 ``logging.Handler`` (or ``None`` to signal "transport unavailable", a soft
@@ -72,8 +72,22 @@ def make_app_insights_handler() -> logging.Handler | None:
 
 def _register_builtins() -> None:
     from azure_bootstrap.transports import register_transport
+    from azure_bootstrap.transports.adx import make_adx_handler
+    from azure_bootstrap.transports.blob import make_blob_handler
+    from azure_bootstrap.transports.event_hubs import make_event_hubs_handler
+    from azure_bootstrap.transports.file import make_file_handler
+    from azure_bootstrap.transports.nosql import make_nosql_handler
+    from azure_bootstrap.transports.panther import make_panther_handler
+    from azure_bootstrap.transports.sql import make_sql_handler
     from azure_bootstrap.transports.sumologic import make_sumo_logic_handler
 
     register_transport("console", make_console_handler, replace=True)
     register_transport("app_insights", make_app_insights_handler, replace=True)
     register_transport("sumo_logic", make_sumo_logic_handler, replace=True)
+    register_transport("panther", make_panther_handler, replace=True)
+    register_transport("file", make_file_handler, replace=True)
+    register_transport("blob", make_blob_handler, replace=True)
+    register_transport("sql", make_sql_handler, replace=True)
+    register_transport("nosql", make_nosql_handler, replace=True)
+    register_transport("adx", make_adx_handler, replace=True)
+    register_transport("event_hubs", make_event_hubs_handler, replace=True)

@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/LICENSE)
-[![Code Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen.svg)]()
 [![CI/CD Pipeline](https://github.com/TheViziusGroup/azure-bootstrap/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TheViziusGroup/azure-bootstrap/actions)
 
 ## 📦 What is This Repository?
@@ -12,7 +12,7 @@
 This repository contains the **source code and build configuration** for the `azure-bootstrap` pip library - a reusable bootstrap package used across 17+ Azure Functions repositories in the organization.
 
 **Package Name**: `azure-bootstrap`
-**Current Version**: `2.1.0`
+**Current Version**: `3.0.0`
 **Distribution**: PyPI (public)
 
 ## 🎯 Purpose
@@ -53,8 +53,23 @@ every Vizius Azure project used to re-implement on top of v1.
   consumer watchdog, dynamic log-level refresh, DLQ digest with
   HMAC-signed resubmit tokens, `/api/metrics` aggregator
 
-See [CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md) for the full v2 surface and
-[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md) for the adoption order.
+### What v3 adds (additive, opt-in via pip extras)
+
+- **Ten logging transports** — console, App Insights, Sumo Logic, Panther,
+  file, blob, SQL, NoSQL, ADX, Event Hubs (all share `_BufferedShipper`
+  guarantees: never block, never raise, bounded buffer)
+- **DB + outbox** — SQLAlchemy session factory, Alembic helpers, transactional
+  outbox pattern for reliable email/webhook delivery
+- **ACS email** — `AcsEmailSender` with outbox-compatible callable
+- **HTTP client** — hardened sync `requests` session + optional async `httpx`
+- **DocumentDB** — Mongo/Cosmos client factory from env
+- **AKS runtime** — `build_info`, SIGTERM handlers, leader election stub
+- **Governance** — budget guard + usage tracking hooks
+- **Scaffold CLI** — `azbootstrap list|scaffold` for Terraform/Bicep/Helm/GitOps/CI/policy templates
+
+See [CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md),
+[MIGRATING-TO-V3.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-TO-V3.md),
+and [docs/USAGE.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/docs/USAGE.md) for the full v3 surface.
 
 ---
 
@@ -150,7 +165,7 @@ pip install azure-bootstrap
 
 ```text
 # requirements.txt
-azure-bootstrap>=2.0,<3
+azure-bootstrap>=3.0,<4
 ```
 
 ### With opt-in extras
@@ -180,6 +195,20 @@ azure-bootstrap>=2.0,<3
 | `[failclose]` | stdlib only | Env-var fail-closed-vs-open helpers |
 | `[transports]` | stdlib only | Logging transport registry (console / App Insights / Sumo Logic) |
 | `[sumologic]` | `requests` | Buffered POST to a Sumo Logic HTTP Source (urllib3 Retry, gzip, Retry-After) |
+| `[panther]` | `requests` | Panther log ingest transport |
+| `[bloblog]` | `azure-storage-blob` | NDJSON append/block blob logging |
+| `[sqllog]` | `sqlalchemy` | Relational DB log shipper |
+| `[nosqllog]` | `pymongo` | MongoDB / Cosmos (Mongo API) document shipper |
+| `[adxlog]` | `azure-kusto-*` | Azure Data Explorer streaming ingest |
+| `[eventhubslog]` | `azure-eventhub` | Event Hubs live-tail producer |
+| `[logging-all]` | all transport deps | Every logging sink at once |
+| `[db]` | `sqlalchemy`, `alembic` | Session factory + migrations + outbox |
+| `[email]` | `azure-communication-email` | ACS transactional email |
+| `[http]` | `requests` | Sync HTTP client with retry |
+| `[http-async]` | `httpx` | Async HTTP client |
+| `[documentdb]` | `pymongo` | DocumentDB client factory |
+| `[governance]` | stdlib only | Budget guard + usage tracking |
+| `[aks]` | stdlib only | AKS runtime helpers + leader election |
 | `[all]` | everything above | All extras at once |
 
 ```bash
@@ -240,7 +269,7 @@ The library gracefully falls back to environment variables when App Configuratio
 
 ## 💡 Usage Examples
 
-The full examples library lives in [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) — 38 numbered
+The full examples library lives in [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) — 46 numbered
 single-concept files plus 3 end-to-end app templates. Each example is
 runnable with `USE_MOCK_BOOTSTRAP=true` (no real Azure needed) and ends
 with a `# ── Expected output ──` block.
@@ -259,6 +288,10 @@ Start here:
 | [examples/e2e_azure_function.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_azure_function.py) | Full Azure Function (v2) |
 | [examples/e2e_fastapi_pipeline.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_fastapi_pipeline.py) | Full FastAPI app |
 | [examples/e2e_aks_sb_worker.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/e2e_aks_sb_worker.py) | Full AKS Service Bus consumer |
+| [examples/39_v3_transports.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/39_v3_transports.py) | v3 logging transports (all ten sinks) |
+| [examples/44_db_outbox_email.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/44_db_outbox_email.py) | v3 DB + outbox + ACS email |
+| [examples/45_http_client.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/45_http_client.py) | v3 hardened HTTP client |
+| [examples/46_scaffold_cli.py](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/46_scaffold_cli.py) | v3 `azbootstrap` scaffold CLI |
 
 See [examples/README.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/examples/README.md) for the full index +
 reading order + per-example pip-extra requirements.
@@ -287,8 +320,9 @@ in three places:
   opens with a docstring explaining the module's purpose and invariants.
 - **Per-symbol runnable examples** — [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) covers every
   public function with at least one focused demo (see the table above).
-- **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** — the v2.0.0 and v2.1.0 entries catalog
+- **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** — v2.0.0, v2.1.0, and v3.0.0 entries catalog
   every new public symbol, organized by tier.
+- **[MIGRATING-TO-V3.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-TO-V3.md)** — v3 upgrade guide (additive, no breaking changes).
 
 ### v1 surface (preserved byte-identical)
 
@@ -368,26 +402,33 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 source .venv/bin/activate  # Linux/Mac
 
-# Install with dev dependencies
-pip install -e ".[dev]"
+# Install with dev + test + all extras (matches CI)
+pip install -e ".[dev,test,all]"
 
-# Verify setup
-pytest
+# Verify setup (655+ tests, 86%+ coverage)
+pytest -m "not integration"
 ```
 
 ### Run Tests
 
 ```bash
-# All tests with coverage
-pytest --cov=azure_bootstrap --cov-report=term-missing
+# All unit tests with coverage (CI default)
+pytest -m "not integration" --cov=azure_bootstrap --cov-report=term-missing
 
-# Specific test
-pytest test/services/test_application_bootstrap.py -v
+# Property-based transport tests (hypothesis)
+pytest test/transports/test_buffered_shipper_hypothesis.py -v
 
-# Generate HTML coverage report
-pytest --cov=azure_bootstrap --cov-report=html
-open htmlcov/index.html
-```
+# Optional-dep import smoke tests
+pytest test/test_all_extras_import.py -v
+
+# Integration tests — SQLite + mongomock (always); Azurite blob (needs env)
+pytest test/integration/ -m integration -v
+
+# Azurite blob integration (local Docker):
+docker run --rm -p 10000:10000 mcr.microsoft.com/azure-storage/azurite \
+  azurite --skipApiVersionCheck -l /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+pytest test/integration/ -m integration -v
+# Uses the official Azurite dev key by default (unset AZURITE_BLOB_CONNECTION_STRING if you exported a bad value)
 
 ### Build Package
 
@@ -399,8 +440,8 @@ pip install build twine
 python -m build
 
 # Output:
-# dist/azure_bootstrap-2.1.0-py3-none-any.whl
-# dist/azure_bootstrap-2.1.0.tar.gz
+# dist/azure_bootstrap-3.0.0-py3-none-any.whl
+# dist/azure_bootstrap-3.0.0.tar.gz
 
 # Verify package
 twine check dist/*
@@ -414,7 +455,7 @@ pip install twine
 twine upload dist/*
 
 # Or automated via pipeline (preferred — uses OIDC Trusted Publisher)
-git tag v2.1.0
+git tag v3.0.0
 git push origin main --tags
 ```
 
@@ -654,8 +695,8 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 
 ### Triggers
 
-- **Push to main** → Stable release (e.g., `2.0.0`)
-- **Push to develop** → Development release with timestamp (e.g., `2.0.0.dev20260518123456`)
+- **Push to main** → Stable release (e.g., `3.0.0`)
+- **Push to develop** → Development release with timestamp (e.g., `3.0.0.dev20260629123456`)
 - **Pull requests** → Build and test only (no publish)
 - **Tags (v*)** → Tagged stable release
 
@@ -673,13 +714,13 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 - **Minor (0.X.0)** — New features (backwards compatible)
 - **Patch (0.0.X)** — Bug fixes
 
-### Current Version: 2.1.0
+### Current Version: 3.0.0
 
-v2.1.0 adds the logging transport layer (console / App Insights / Sumo Logic)
-and is **strictly additive** — the public API surface is unchanged. Like v2.0.0,
-every v1 public symbol is preserved byte-identical. See
-[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md) for the full release surface and
-[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md) for the adoption order.
+v3.0.0 is an **additive flagship** release: ten logging transports, DB/outbox,
+ACS email, HTTP client, AKS runtime, governance hooks, and the `azbootstrap`
+scaffold CLI. No v1/v2 symbols were removed or renamed. See
+[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md) and
+[MIGRATING-TO-V3.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-TO-V3.md).
 
 ---
 
@@ -739,7 +780,7 @@ matrix.
 - ✅ **Simple Integration** - Just `pip install` and 2-line import
 - ✅ **No Implementation Knowledge** - Use public API, done
 - ✅ **Type-Safe** - Full type hints for IDE support
-- ✅ **Well-Tested** - 80%+ coverage, production-proven
+- ✅ **Well-Tested** — 655+ tests, 86%+ coverage, property-based + integration tests
 
 ### For Operations
 

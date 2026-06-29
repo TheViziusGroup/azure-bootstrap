@@ -101,7 +101,35 @@ def admin_bucket(*, name: str = "admin") -> TokenBucket:
     return TokenBucket(budget=30.0, refill_per_second=0.5, name=name)
 
 
+class MultiUnitLimiter:
+    """Multi-unit sliding window limiter (pages/records/seconds/chars/calls)."""
+
+    def __init__(
+        self,
+        *,
+        limits: dict[str, tuple[float, float]],
+        fail_closed: bool | None = None,
+        name: str = "multi",
+    ) -> None:
+        self._buckets = {
+            unit: TokenBucket(budget=budget, refill_per_second=refill, name=f"{name}.{unit}")
+            for unit, (budget, refill) in limits.items()
+        }
+        if fail_closed is None:
+            import os
+
+            fail_closed = os.environ.get("RATE_LIMIT_FAIL_CLOSED", "0") == "1"
+        self._fail_closed = fail_closed
+
+    def allow(self, unit: str, amount: float = 1.0) -> bool:
+        bucket = self._buckets.get(unit)
+        if bucket is None:
+            return not self._fail_closed
+        return bucket.consume(amount)
+
+
 __all__ = [
+    "MultiUnitLimiter",
     "TokenBucket",
     "admin_bucket",
     "fastapi_rate_limit",

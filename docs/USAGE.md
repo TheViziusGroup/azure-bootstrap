@@ -1,9 +1,25 @@
 # Using `azure-bootstrap` — Complete Usage Guide
 
 > A practitioner's guide to consuming the **Azure Bootstrap Library** (`azure-bootstrap`,
-> v2.1.0) from a real codebase — in **Python** and in **TypeScript / Next.js**.
+> v3.0.0) from a real codebase — in **Python** and in **TypeScript / Next.js**.
 
----
+### v3.0.0 additions (2026-06-29)
+
+3.0.0 adds **seven optional logging transports** (`panther`, `file`, `blob`, `sql`,
+`nosql`, `adx`, `event_hubs`), a **DB/outbox/email** stack, **hardened HTTP**,
+**AKS runtime helpers**, **governance**, and a **`azbootstrap scaffold` CLI**.
+Everything is opt-in behind pip extras. See [MIGRATING-TO-V3.md](../MIGRATING-TO-V3.md).
+
+| Extra | Purpose |
+|-------|---------|
+| `panther`, `bloblog`, `sqllog`, `nosqllog`, `adxlog`, `eventhubslog` | Individual transports |
+| `logging-all` | All transport dependencies |
+| `db` | SQLAlchemy + Alembic + outbox |
+| `email` | ACS sender |
+| `http`, `http-async` | Sync requests + optional httpx |
+| `documentdb` | Mongo/Cosmos access |
+| `governance`, `aks` | Budget guard + pod runtime (stdlib) |
+
 
 ## 0. Read this first
 
@@ -515,6 +531,55 @@ configure_transports(sumo_logic=True)   # or rely on the env flag alone
 | `SUMO_LOGIC_FLUSH_INTERVAL` | `5.0` | timer flush (s) |
 | `SUMO_LOGIC_MAX_BUFFER` | `10000` | buffer cap (oldest dropped on overflow) |
 | `SUMO_LOGIC_TIMEOUT` | `5.0` | POST timeout (s) |
+
+### v3.0.0 transports (seven additional sinks)
+
+All v3 network/storage transports subclass `_BufferedShipper` — the same guarantees as
+Sumo Logic: **never block the caller, never raise, bounded buffer with drop counting**,
+background flush thread, batch by count and bytes, flush at `atexit`.
+
+| Name | Extra | Env flag | Factory env (soft no-op if unset) |
+|---|---|---|---|
+| `panther` | `[panther]` | `PANTHER_LOGGING_ENABLED` | `PANTHER_API_HOST`, `PANTHER_LOG_SOURCE_*` |
+| `file` | stdlib | `FILE_LOGGING_ENABLED` | `FILE_LOG_PATH`, rotation settings |
+| `blob` | `[bloblog]` | `BLOB_LOGGING_ENABLED` | `BLOB_*` connection/container settings |
+| `sql` | `[sqllog]` | `SQL_LOGGING_ENABLED` | `SQL_LOG_DSN`, `SQL_LOG_TABLE` |
+| `nosql` | `[nosqllog]` | `NOSQL_LOGGING_ENABLED` | `NOSQL_URI`, database/collection |
+| `adx` | `[adxlog]` | `ADX_LOGGING_ENABLED` | `ADX_CLUSTER_URI`, `ADX_DATABASE` |
+| `event_hubs` | `[eventhubslog]` | `EVENTHUBS_LOGGING_ENABLED` | `EVENTHUB_FQNS`, `EVENTHUB_NAME` |
+
+```python
+from azure_bootstrap import configure_transports
+
+configure_transports(
+    console=True,
+    panther=True,
+    blob=True,
+    sql=True,
+    nosql=True,
+    adx=True,
+    event_hubs=True,
+)
+```
+
+See [examples/39_v3_transports.py](../examples/39_v3_transports.py). Install all deps
+with `pip install 'azure-bootstrap[logging-all]'`.
+
+### v3.0.0 runtime modules (non-transport)
+
+| Module | Extra | Key APIs |
+|---|---|---|
+| `azure_bootstrap.db` | `[db]` | `get_sessionmaker()`, `Outbox`, `drain_outbox()` |
+| `azure_bootstrap.email` | `[email]` | `AcsEmailSender` |
+| `azure_bootstrap.http` | `[http]` | `build_session()`, `request_with_retry()` |
+| `azure_bootstrap.http.async_client` | `[http-async]` | `build_async_client()` |
+| `azure_bootstrap.documentdb` | `[documentdb]` | `mongo_client_from_env()` |
+| `azure_bootstrap.aks` | `[aks]` | `build_info()`, `install_sigterm_handler()` |
+| `azure_bootstrap.governance` | `[governance]` | `budget_guard()`, `track_usage()` |
+| `azure_bootstrap.contrib.scaffold` | core | `azbootstrap list`, `azbootstrap scaffold` |
+
+Examples: [44](../examples/44_db_outbox_email.py), [45](../examples/45_http_client.py),
+[46](../examples/46_scaffold_cli.py).
 
 ---
 

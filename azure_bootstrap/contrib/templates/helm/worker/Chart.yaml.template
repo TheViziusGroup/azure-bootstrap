@@ -1,0 +1,4 @@
+apiVersion: v2
+name: {{ app_name }}
+description: azure-bootstrap worker chart
+version: 0.1.0

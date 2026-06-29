@@ -1,5 +1,11 @@
 """Tier 3 Service Bus helpers: consumer watchdog, DLQ growth alarm, daily digest."""
 
+from azure_bootstrap.servicebus.async_ext import (
+    MultiQueueRouter,
+    ReplayGuard,
+    run_async_consumer,
+    service_bus_transport_type,
+)
 from azure_bootstrap.servicebus.consumer import (
     record_consumer_iteration,
     record_message_settled,
@@ -27,6 +33,8 @@ __all__ = [
     "EmailRepoProtocol",
     "InvalidResubmitToken",
     "MessageProcessor",
+    "MultiQueueRouter",
+    "ReplayGuard",
     "SbReceiverProtocol",
     "build_dlq_digest_body",
     "check_dlq_growth_rate",
@@ -35,7 +43,9 @@ __all__ = [
     "record_consumer_iteration",
     "record_message_settled",
     "reset_state",
+    "run_async_consumer",
     "run_dlq_digest",
+    "service_bus_transport_type",
     "start_consumer_watchdog",
     "verify_resubmit_token",
 ]
