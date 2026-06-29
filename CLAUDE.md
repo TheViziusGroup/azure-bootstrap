@@ -7,7 +7,7 @@
 This repository contains the **Azure Bootstrap Library** - a production-ready pip package that provides unified bootstrap functionality for Azure Functions applications across multiple organizations.
 
 **Package Name**: `azure-bootstrap`
-**Version**: 2.1.1
+**Version**: 2.1.2
 **Language**: Python 3.11+
 **Distribution**: PyPI (public)
 
@@ -586,10 +586,15 @@ opentelemetry-api >= 1.22.0
 opentelemetry-instrumentation-azure-functions >= 0.45b0
 
 # Pinned for CVE remediation:
-azure-core >= 1.38.0      # CVE-2026-21226
-filelock >= 3.20.3        # CVE-2025-68146, CVE-2026-22701
-urllib3 >= 2.6.3          # CVE-2026-21441
+azure-core >= 1.38.0        # CVE-2026-21226
+filelock >= 3.20.3          # CVE-2025-68146, CVE-2026-22701
+urllib3 >= 2.7.0            # CVE-2026-21441 + CVE-2026-44431/44432
+cryptography >= 48.0.1,<49  # GHSA-537c-gmf6-5ccf (via azure-identity/msal; msal caps <49)
+pyjwt >= 2.13.0             # PYSEC-2026-175..179 (via msal; msal caps <3)
 ```
+
+Optional-extra CVE pins (v2.1.2): `pypdf>=6.13.3` (`[pdf-safety]`) and
+`starlette>=1.3.1` (`[fastapi]`/`[all]`).
 
 ### Optional Dependencies (~24 extras)
 
@@ -804,6 +809,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), adhere
 
 The authoritative changelog lives at [CHANGELOG.md](CHANGELOG.md). The
 short summaries below are kept for AI-assistant context.
+
+### [2.1.2] - 2026-06-29
+
+Security patch. No source changes — only dependency version floors raised to
+remediate CVEs. New core pins `cryptography>=48.0.1,<49` (GHSA-537c-gmf6-5ccf)
+and `pyjwt>=2.13.0` (PYSEC-2026-175..179), both transitive via
+`azure-identity`/`msal` and kept under msal's caps. Optional-extra bumps:
+`pypdf>=6.13.3` (`[pdf-safety]`) and `starlette>=1.3.1` (`[fastapi]`/`[all]`).
+`msgpack`/`pip` advisories are dev-tooling only and intentionally not pinned.
+469 tests / 87.48 % coverage unchanged.
 
 ### [2.1.1] - 2026-06-29
 
