@@ -73,7 +73,7 @@ jobs:
       - name: Set package version
         id: set-version
         run: |
-          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+          if [ "$GITHUB_REF" == "refs/heads/develop" ]; then
             # Get base version from pyproject.toml
             BASE_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
             # Create dev version with timestamp
@@ -159,8 +159,12 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI (Trusted Publisher)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         # No credentials needed — uses OIDC Trusted Publisher
+        with:
+          # A release pushes main + a tag together; both trigger this job. The
+          # first upload wins, so make the loser a no-op instead of a 400 failure.
+          skip-existing: true
 
   publish-dev:
     name: Publish Dev to PyPI
@@ -180,7 +184,7 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI (Trusted Publisher)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
 
   validate-installation:
     name: Validate Installation
