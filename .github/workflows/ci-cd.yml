@@ -117,10 +117,6 @@ jobs:
         image: mcr.microsoft.com/azure-storage/azurite
         ports:
           - 10000:10000
-        options: >-
-          --entrypoint azurite
-          azurite --skipApiVersionCheck -l /data
-          --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
 
     env:
       AZURITE_BLOB_CONNECTION_STRING: >-
