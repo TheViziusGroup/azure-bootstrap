@@ -221,7 +221,7 @@ pip install 'azure-bootstrap[all]'
 
 ---
 
-## ⚙️ Configuration
+## 🔩 Configuration
 
 ### Option 1: Enterprise (Azure App Configuration + Key Vault)
 
@@ -392,7 +392,7 @@ boundary yet.
 
 ---
 
-## 🛠️ Development
+## 🔨 Development
 
 ### Setup Development Environment
 
