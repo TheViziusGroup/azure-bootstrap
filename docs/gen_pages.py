@@ -197,5 +197,25 @@ for dotted in modules:
     label = dotted if depth == 0 else dotted.rsplit(".", 1)[1]
     summary.append(f"{'    ' * depth}* [{label}]({dotted}.md)")
 
+# A landing page for the section root. Without one, `reference/` is a pure
+# literate-nav section: every leaf resolves but /reference/ itself 404s, and
+# README links to exactly that URL.
+index_lines = [
+    "# API Reference",
+    "",
+    "Generated from the package docstrings and signatures by",
+    "[mkdocstrings](https://mkdocstrings.github.io/), one page per package in",
+    "`[tool.setuptools] packages` — so a new subpackage appears here as soon as",
+    "it is declared for distribution.",
+    "",
+    f"{len(modules)} packages:",
+    "",
+]
+index_lines += [f"- [`{dotted}`]({dotted}.md)" for dotted in modules]
+
+with mkdocs_gen_files.open("reference/index.md", "w") as fd:
+    fd.write("\n".join(index_lines) + "\n")
+mkdocs_gen_files.set_edit_path("reference/index.md", "docs/gen_pages.py")
+
 with mkdocs_gen_files.open("reference/SUMMARY.md", "w") as fd:
-    fd.write("\n".join(summary) + "\n")
+    fd.write("* [Overview](index.md)\n" + "\n".join(summary) + "\n")
