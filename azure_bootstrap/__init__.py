@@ -25,7 +25,7 @@ Quick Start:
 For detailed usage, see: https://github.com/TheViziusGroup/azure-bootstrap
 """
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 __author__ = "The Vizius Group"
 __license__ = "MIT"
 

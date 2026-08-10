@@ -117,13 +117,16 @@ azure-bootstrap/
 │   ├── function_app_example.py           # v1 reference (kept for back-compat)
 │   └── local.settings.json.example
 │
-├── docs/                             # Long-form usage guide
-│   └── USAGE.md                          # End-to-end Python + TypeScript/Next.js walkthrough (v2.1)
+├── docs/                             # Long-form usage guide + docs-site build
+│   ├── USAGE.md                          # End-to-end Python + TypeScript/Next.js walkthrough (v2.1)
+│   └── gen_pages.py                      # mkdocs-gen-files script: assembles the site (see below)
 │
-├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD
+├── mkdocs.yml                        # MkDocs Material config → GitHub Pages
+├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD (PyPI + TestPyPI)
+├── .github/workflows/docs.yml        # GitHub Actions docs build + Pages deploy
 ├── .githooks/                        # Git hooks (pre-commit, pre-push)
 ├── .vscode/                          # VS Code workspace config
-├── pyproject.toml                    # Package metadata + ~24 optional extras
+├── pyproject.toml                    # Package metadata + 40+ optional extras
 ├── MANIFEST.in                       # Distribution file control
 ├── README.md                         # Library overview + extras matrix
 ├── CHANGELOG.md                      # Release-by-release surface (v1.0.0, v2.0.0, v2.1.0)
@@ -325,6 +328,46 @@ twine upload dist/*
 # Or push to main (automated via pipeline)
 git push origin main
 ```
+
+### Documentation Site
+
+The site at <https://theviziusgroup.github.io/azure-bootstrap/> is built with
+MkDocs Material and deployed by `.github/workflows/docs.yml` on every push to
+`main`.
+
+```bash
+pip install -e ".[docs,all]"   # `all` matters — see below
+mkdocs serve                   # http://127.0.0.1:8000, live-reloads
+mkdocs build --strict          # what CI runs; any warning fails the build
+```
+
+**The repo-root markdown stays the single source of truth.** Nothing is
+duplicated into `docs/` and nothing is committed by a docs build. At build time
+`docs/gen_pages.py` (run by `mkdocs-gen-files`) reads `README.md`,
+`CHANGELOG.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `MIGRATING-*.md`, and
+`docs/USAGE.md` into an in-memory overlay, rewrites their links, and emits the
+API reference. Consequences worth knowing:
+
+- **Edit the root files, not `docs/`.** `README.md` is also the PyPI long
+  description and its links are bookmarked, so it must stay correct as read on
+  GitHub. The generator adapts it for the site rather than the reverse.
+- **Links are rewritten, not hand-maintained.** Absolute
+  `github.com/.../blob/main/…` URLs, root-relative paths, and `../`-relative
+  paths all resolve to in-site pages when the target is one of the pages above,
+  and stay pointed at GitHub otherwise. Anchors are translated only for in-site
+  targets — GitHub and python-markdown slugify headings differently
+  (`## 🚀 Quick Start` → `-quick-start` vs `quick-start`), so `gen_pages.py`
+  computes both slugs per heading rather than guessing. Do not "fix" emoji
+  anchors in the root markdown; they are correct for GitHub and translated for
+  the site.
+- **New subpackages must be added to `[tool.setuptools] packages`.** That list
+  drives the API-reference nav as well as what ships in the wheel, so an
+  omission now costs a missing docs page too — a useful extra signal.
+- **`docs/USAGE.md` is excluded from the site as-is** and republished as
+  `usage.md` with rewritten links. Both exist by design; edit `USAGE.md`.
+- **Balanced code fences matter.** An unclosed ```` ``` ```` swallows the
+  following headings, which breaks anchors silently. `mkdocs build --strict`
+  catches the fallout.
 
 ## Code Guidelines
 
@@ -596,7 +639,7 @@ pyjwt >= 2.13.0             # PYSEC-2026-175..179 (via msal; msal caps <3)
 Optional-extra CVE pins (v2.1.2): `pypdf>=6.13.3` (`[pdf-safety]`) and
 `starlette>=1.3.1` (`[fastapi]`/`[all]`).
 
-### Optional Dependencies (~24 extras)
+### Optional Dependencies (40+ extras)
 
 See [pyproject.toml](pyproject.toml) and the **Installation** table in
 [README.md](README.md) for the full extras matrix. Highlights:
@@ -638,7 +681,10 @@ pytest-mock >= 3.11.1
 | **azure_bootstrap/__init__.py** | Public API exports - ALWAYS update when adding public functions |
 | **pyproject.toml** | Package metadata, dependencies, build configuration |
 | **MANIFEST.in** | Controls what gets included in distribution |
-| **.github/workflows/ci-cd.yml** | GitHub Actions CI/CD workflow |
+| **.github/workflows/ci-cd.yml** | GitHub Actions CI/CD workflow (PyPI + TestPyPI) |
+| **.github/workflows/docs.yml** | Docs build + GitHub Pages deploy |
+| **mkdocs.yml** | Docs-site config (theme, nav, mkdocstrings options) |
+| **docs/gen_pages.py** | Assembles the site from root markdown + docstrings |
 | **README.md** | Library documentation, API reference, migration guide |
 | **CONTRIBUTING.md** | Git workflow, quality standards, tooling setup |
 
@@ -713,32 +759,39 @@ This library was extracted from a production Azure Functions application that pr
 
 ## CI/CD Setup & Troubleshooting
 
-The library uses **GitHub Actions** for CI/CD, publishing to **PyPI** (public).
+The library uses **GitHub Actions** for CI/CD, publishing stable releases to
+**PyPI** (public) and `develop`-branch dev builds to **TestPyPI**.
 
 ### Workflow Overview
 
 ```mermaid
 graph LR
     A[Push Code] --> B[Build & Test]
-    B --> C{Push to Main or Tag?}
-    C -->|Yes| D[Publish to PyPI]
-    C -->|No - PR| E[Stop]
+    B --> C{Which ref?}
+    C -->|main or v* tag| D[Publish to PyPI]
+    C -->|develop| G[Publish Dev to TestPyPI]
+    C -->|PR| E[Stop]
     D --> F[Validate Installation]
+    G --> H[Validate Dev Installation]
 ```
 
 ### Workflow Stages
 
-1. **Build & Test** (every push/PR): Install Python 3.11, run pytest with 80% coverage, build wheel + sdist
+1. **Build & Test** (every push/PR): Install Python 3.11, run pytest with 85% coverage, build wheel + sdist
 2. **Publish** (main/tags only): Upload package to PyPI via Trusted Publisher or API token
-3. **Validate**: Install from PyPI, verify imports work
+3. **Publish Dev** (develop only): Upload the timestamped `.devN` build to
+   **TestPyPI** via Trusted Publisher — keeps pre-releases out of the public
+   PyPI release history
+4. **Validate**: Install the exact built version from PyPI / TestPyPI, verify
+   imports and `__version__`
 
 ### Version Strategy
 
-| Branch | Version Format | Example |
-|--------|---------------|---------|
-| `main` | Stable | `2.0.0` |
-| `develop` | Dev + timestamp | `2.0.0.dev20260518123456` |
-| `v*` tags | Stable | `2.0.0` |
+| Branch | Version Format | Example | Target index |
+|--------|---------------|---------|--------------|
+| `main` | Stable | `3.0.1` | PyPI |
+| `develop` | Dev + timestamp | `3.0.0.dev20260518123456` | TestPyPI |
+| `v*` tags | Stable | `3.0.1` | PyPI |
 
 ### GitHub Actions Setup for PyPI Publishing
 
@@ -756,6 +809,25 @@ graph LR
 2. Create a token scoped to the `azure-bootstrap` project
 3. Add GitHub Secret: `PYPI_API_TOKEN` = [token value]
 
+### GitHub Actions Setup for TestPyPI Publishing (dev builds)
+
+TestPyPI is a **separate service with its own account** — a pypi.org login does
+not work there.
+
+1. Go to [TestPyPI](https://test.pypi.org) → Your Account → **Publishing**
+2. Add a new **pending publisher**:
+   - PyPI Project Name: `azure-bootstrap`
+   - Owner: `TheViziusGroup`
+   - Repository: `azure-bootstrap`
+   - Workflow: `ci-cd.yml`
+   - Environment: `testpypi`
+3. Create the matching GitHub environment: **Settings** → **Environments** →
+   `testpypi`. Do **not** add required reviewers — that would block every push
+   to `develop`.
+
+The environment name must match **character-for-character** in both places: the
+OIDC token carries an `environment` claim that TestPyPI checks.
+
 ### Publishing Logic
 
 ```yaml
@@ -770,10 +842,15 @@ if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWit
 pip install azure-bootstrap
 
 # Install specific version
-pip install azure-bootstrap==2.0.0
+pip install azure-bootstrap==3.0.1
 
-# Install pre-release (dev builds)
-pip install azure-bootstrap --pre
+# Install a dev build. These live on TestPyPI, NOT PyPI — `--pre` against PyPI
+# finds nothing, because PyPI now only ever holds real releases. TestPyPI does
+# not mirror PyPI, so --extra-index-url is needed for the runtime deps.
+pip install \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  'azure-bootstrap==3.0.0.dev20260518123456'
 
 # Install with optional extras
 pip install 'azure-bootstrap[alerts,fastapi,servicebus]'
@@ -786,18 +863,43 @@ pip install 'azure-bootstrap[all]'
 - If using Trusted Publishers: verify workflow name, repo owner, and environment match PyPI config
 - If using API token: verify `PYPI_API_TOKEN` secret exists and hasn't been revoked
 
+#### TestPyPI 403 on `publish-dev`
+Reads like a permissions bug; it is almost always a claim mismatch:
+- The GitHub job's `environment:` (`testpypi`) must equal the **Environment**
+  field on the TestPyPI publisher exactly — including the blank-vs-set case
+  (no `environment:` in the job ⇔ blank field on TestPyPI)
+- Verify the publisher was registered at **test**.pypi.org, not pypi.org
+- Confirm the `testpypi` GitHub environment exists and has no required
+  reviewers or branch restrictions blocking `develop`
+
 #### Package Not Found After Publishing
 - PyPI indexing is usually instant, but wait a few seconds and retry
-- Verify package at https://pypi.org/project/azure-bootstrap/
+- Verify package at https://pypi.org/project/azure-bootstrap/ (stable) or
+  https://test.pypi.org/project/azure-bootstrap/ (dev builds)
 
 #### Workflow Not Running
 - Verify `.github/workflows/ci-cd.yml` exists
 - Check branch names match triggers (`main`, `develop`)
 - Enable Actions: **Settings** → **Actions** → **General** → "Allow all actions"
 
+#### `deploy-pages` 404 (Documentation workflow)
+GitHub Pages must be enabled once, by hand, before the first deploy:
+- **Settings** → **Pages** → **Source: GitHub Actions** (not "Deploy from a
+  branch")
+- The `build` job runs `actions/configure-pages@v5` first, which makes this
+  failure mode less cryptic, but it cannot enable Pages for you
+
+#### Docs build fails only in CI (`mkdocs build --strict`)
+- Reproduce with `pip install -e ".[docs,all]" && mkdocs build --strict`
+- Unresolved-alias warnings from griffe mean an optional third-party import
+  isn't installed; `all` omits `azure-cosmos` and `pypdf`, so try
+  `.[docs,all,pdf-safety,nosqllog-cosmos]`
+- Broken-anchor warnings usually mean a heading was renamed in one root
+  markdown file while another still links to the old slug
+
 #### Version Conflicts
 - Clear pip cache: `pip cache purge`
-- Install specific version: `pip install azure-bootstrap==2.0.0`
+- Install specific version: `pip install azure-bootstrap==3.0.1`
 
 ---
 
@@ -809,6 +911,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), adhere
 
 The authoritative changelog lives at [CHANGELOG.md](CHANGELOG.md). The
 short summaries below are kept for AI-assistant context.
+
+> Note: this section skips 3.0.0 — see [CHANGELOG.md](CHANGELOG.md) for the
+> full v3 surface.
+
+### [3.0.1] - 2026-08-10
+
+Patch release. One runtime fix, plus documentation and CI infrastructure.
+
+- **Fixed**: `check_app_config_health()` probed App Configuration by calling
+  the provider's `load()`, which downloads every setting **and resolves every
+  Key Vault reference** — making a readiness probe as expensive as a full
+  bootstrap, and able to report the config store unhealthy because of an
+  unrelated Key Vault permission gap. It now uses
+  `AzureAppConfigurationClient` and pulls a single setting off the lazy pager.
+- **Added**: `azure-appconfiguration>=1.9.0` as a declared core dependency
+  (previously relied on the provider's transitive edge).
+- **Added**: documentation site at
+  <https://theviziusgroup.github.io/azure-bootstrap/> — MkDocs Material,
+  generated API reference via mkdocstrings, deployed by `.github/workflows/docs.yml`
+  on push to `main`. Assembled at build time from the repo-root markdown by
+  `docs/gen_pages.py`; nothing is duplicated into the tree.
+- **Added**: `docs` pip extra (not part of `all`).
+- **Changed**: `develop`-branch dev builds now publish to **TestPyPI**, not
+  PyPI. Public release history contains only real releases.
 
 ### [2.1.2] - 2026-06-29
 

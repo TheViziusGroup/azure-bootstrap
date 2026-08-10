@@ -6,13 +6,14 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/LICENSE)
 [![Code Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen.svg)]()
 [![CI/CD Pipeline](https://github.com/TheViziusGroup/azure-bootstrap/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TheViziusGroup/azure-bootstrap/actions)
+[![Documentation](https://img.shields.io/badge/docs-github.io-blue.svg)](https://theviziusgroup.github.io/azure-bootstrap/)
 
 ## 📦 What is This Repository?
 
 This repository contains the **source code and build configuration** for the `azure-bootstrap` pip library - a reusable bootstrap package used across 17+ Azure Functions repositories in the organization.
 
 **Package Name**: `azure-bootstrap`
-**Current Version**: `3.0.0`
+**Current Version**: `3.0.1`
 **Distribution**: PyPI (public)
 
 ## 🎯 Purpose
@@ -220,7 +221,7 @@ pip install 'azure-bootstrap[all]'
 
 ---
 
-## ⚙️ Configuration
+## 🔩 Configuration
 
 ### Option 1: Enterprise (Azure App Configuration + Key Vault)
 
@@ -316,6 +317,9 @@ The library exports ~40 top-level symbols and 30+ subpackages. Rather
 than duplicating the spec here, each module's public surface is documented
 in three places:
 
+- **[Full generated API reference](https://theviziusgroup.github.io/azure-bootstrap/reference/)**
+  — every package rendered from its docstrings and signatures, searchable,
+  rebuilt from `main` on every push.
 - **Module docstrings** — every `azure_bootstrap/<module>/__init__.py`
   opens with a docstring explaining the module's purpose and invariants.
 - **Per-symbol runnable examples** — [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) covers every
@@ -388,7 +392,7 @@ boundary yet.
 
 ---
 
-## 🛠️ Development
+## 🔨 Development
 
 ### Setup Development Environment
 
@@ -429,6 +433,7 @@ docker run --rm -p 10000:10000 mcr.microsoft.com/azure-storage/azurite \
   azurite --skipApiVersionCheck -l /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
 pytest test/integration/ -m integration -v
 # Uses the official Azurite dev key by default (unset AZURITE_BLOB_CONNECTION_STRING if you exported a bad value)
+```
 
 ### Build Package
 
@@ -440,8 +445,8 @@ pip install build twine
 python -m build
 
 # Output:
-# dist/azure_bootstrap-3.0.0-py3-none-any.whl
-# dist/azure_bootstrap-3.0.0.tar.gz
+# dist/azure_bootstrap-3.0.1-py3-none-any.whl
+# dist/azure_bootstrap-3.0.1.tar.gz
 
 # Verify package
 twine check dist/*
@@ -455,7 +460,7 @@ pip install twine
 twine upload dist/*
 
 # Or automated via pipeline (preferred — uses OIDC Trusted Publisher)
-git tag v3.0.0
+git tag v3.0.1
 git push origin main --tags
 ```
 
@@ -555,6 +560,7 @@ pip install azure-bootstrap --verbose
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
+| **[Documentation site](https://theviziusgroup.github.io/azure-bootstrap/)** | Everyone | All of the below, searchable, plus the generated API reference |
 | **README.md** | Everyone | Library overview (you are here) |
 | **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** | Everyone | Complete release-by-release surface |
 | **[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md)** | v1 adopters | v1 → v2 upgrade path + adoption order |
@@ -629,7 +635,7 @@ azure-bootstrap/
 ├── .github/workflows/ci-cd.yml           # 🔄 GitHub Actions CI/CD
 ├── .githooks/                            # 🪝 Git hooks (pre-commit, pre-push)
 ├── .vscode/                              # 💻 VS Code workspace config
-├── pyproject.toml                        # ⚙️ Package metadata + ~24 optional extras
+├── pyproject.toml                        # ⚙️ Package metadata + 40+ optional extras
 ├── README.md                             # 👈 You are here
 ├── CHANGELOG.md                          # 📋 Full release surface
 ├── MIGRATING-FROM-V1.md                  # 🔀 v1 → v2 adoption guide
@@ -691,14 +697,26 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 
 1. **Build & Test** - Installs dependencies, runs tests with coverage
 2. **Publish** - Uploads package to PyPI (main branch and tags only)
-3. **Validate** - Tests installation from feed
+3. **Publish Dev → TestPyPI** - Uploads the timestamped `.devN` build to
+   [TestPyPI](https://test.pypi.org/project/azure-bootstrap/) (develop branch
+   only), so the public PyPI history holds only real releases
+4. **Validate** - Installs the exact published version back from PyPI /
+   TestPyPI and verifies imports
 
 ### Triggers
 
-- **Push to main** → Stable release (e.g., `3.0.0`)
-- **Push to develop** → Development release with timestamp (e.g., `3.0.0.dev20260629123456`)
+- **Push to main** → Stable release to PyPI (e.g., `3.0.1`)
+- **Push to develop** → Development release to **TestPyPI** with timestamp (e.g., `3.0.0.dev20260629123456`)
 - **Pull requests** → Build and test only (no publish)
-- **Tags (v*)** → Tagged stable release
+- **Tags (v*)** → Tagged stable release to PyPI
+
+### Documentation Workflow
+
+A second workflow, [.github/workflows/docs.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/docs.yml),
+builds the MkDocs Material site and deploys it to GitHub Pages on every push to
+`main`. Pull requests build the site too (as a downloadable `docs-site-preview`
+artifact) but do not deploy. Nothing is committed — the site is assembled at
+build time from the repo-root markdown and the package docstrings.
 
 See [.github/workflows/ci-cd.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/ci-cd.yml) for workflow configuration.
 
@@ -714,7 +732,7 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 - **Minor (0.X.0)** — New features (backwards compatible)
 - **Patch (0.0.X)** — Bug fixes
 
-### Current Version: 3.0.0
+### Current Version: 3.0.1
 
 v3.0.0 is an **additive flagship** release: ten logging transports, DB/outbox,
 ACS email, HTTP client, AKS runtime, governance hooks, and the `azbootstrap`
