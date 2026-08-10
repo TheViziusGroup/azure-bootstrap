@@ -713,32 +713,39 @@ This library was extracted from a production Azure Functions application that pr
 
 ## CI/CD Setup & Troubleshooting
 
-The library uses **GitHub Actions** for CI/CD, publishing to **PyPI** (public).
+The library uses **GitHub Actions** for CI/CD, publishing stable releases to
+**PyPI** (public) and `develop`-branch dev builds to **TestPyPI**.
 
 ### Workflow Overview
 
 ```mermaid
 graph LR
     A[Push Code] --> B[Build & Test]
-    B --> C{Push to Main or Tag?}
-    C -->|Yes| D[Publish to PyPI]
-    C -->|No - PR| E[Stop]
+    B --> C{Which ref?}
+    C -->|main or v* tag| D[Publish to PyPI]
+    C -->|develop| G[Publish Dev to TestPyPI]
+    C -->|PR| E[Stop]
     D --> F[Validate Installation]
+    G --> H[Validate Dev Installation]
 ```
 
 ### Workflow Stages
 
-1. **Build & Test** (every push/PR): Install Python 3.11, run pytest with 80% coverage, build wheel + sdist
+1. **Build & Test** (every push/PR): Install Python 3.11, run pytest with 85% coverage, build wheel + sdist
 2. **Publish** (main/tags only): Upload package to PyPI via Trusted Publisher or API token
-3. **Validate**: Install from PyPI, verify imports work
+3. **Publish Dev** (develop only): Upload the timestamped `.devN` build to
+   **TestPyPI** via Trusted Publisher — keeps pre-releases out of the public
+   PyPI release history
+4. **Validate**: Install the exact built version from PyPI / TestPyPI, verify
+   imports and `__version__`
 
 ### Version Strategy
 
-| Branch | Version Format | Example |
-|--------|---------------|---------|
-| `main` | Stable | `2.0.0` |
-| `develop` | Dev + timestamp | `2.0.0.dev20260518123456` |
-| `v*` tags | Stable | `2.0.0` |
+| Branch | Version Format | Example | Target index |
+|--------|---------------|---------|--------------|
+| `main` | Stable | `3.0.0` | PyPI |
+| `develop` | Dev + timestamp | `3.0.0.dev20260518123456` | TestPyPI |
+| `v*` tags | Stable | `3.0.0` | PyPI |
 
 ### GitHub Actions Setup for PyPI Publishing
 
@@ -756,6 +763,25 @@ graph LR
 2. Create a token scoped to the `azure-bootstrap` project
 3. Add GitHub Secret: `PYPI_API_TOKEN` = [token value]
 
+### GitHub Actions Setup for TestPyPI Publishing (dev builds)
+
+TestPyPI is a **separate service with its own account** — a pypi.org login does
+not work there.
+
+1. Go to [TestPyPI](https://test.pypi.org) → Your Account → **Publishing**
+2. Add a new **pending publisher**:
+   - PyPI Project Name: `azure-bootstrap`
+   - Owner: `TheViziusGroup`
+   - Repository: `azure-bootstrap`
+   - Workflow: `ci-cd.yml`
+   - Environment: `testpypi`
+3. Create the matching GitHub environment: **Settings** → **Environments** →
+   `testpypi`. Do **not** add required reviewers — that would block every push
+   to `develop`.
+
+The environment name must match **character-for-character** in both places: the
+OIDC token carries an `environment` claim that TestPyPI checks.
+
 ### Publishing Logic
 
 ```yaml
@@ -770,10 +796,15 @@ if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWit
 pip install azure-bootstrap
 
 # Install specific version
-pip install azure-bootstrap==2.0.0
+pip install azure-bootstrap==3.0.0
 
-# Install pre-release (dev builds)
-pip install azure-bootstrap --pre
+# Install a dev build. These live on TestPyPI, NOT PyPI — `--pre` against PyPI
+# finds nothing, because PyPI now only ever holds real releases. TestPyPI does
+# not mirror PyPI, so --extra-index-url is needed for the runtime deps.
+pip install \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  'azure-bootstrap==3.0.0.dev20260518123456'
 
 # Install with optional extras
 pip install 'azure-bootstrap[alerts,fastapi,servicebus]'
@@ -786,9 +817,19 @@ pip install 'azure-bootstrap[all]'
 - If using Trusted Publishers: verify workflow name, repo owner, and environment match PyPI config
 - If using API token: verify `PYPI_API_TOKEN` secret exists and hasn't been revoked
 
+#### TestPyPI 403 on `publish-dev`
+Reads like a permissions bug; it is almost always a claim mismatch:
+- The GitHub job's `environment:` (`testpypi`) must equal the **Environment**
+  field on the TestPyPI publisher exactly — including the blank-vs-set case
+  (no `environment:` in the job ⇔ blank field on TestPyPI)
+- Verify the publisher was registered at **test**.pypi.org, not pypi.org
+- Confirm the `testpypi` GitHub environment exists and has no required
+  reviewers or branch restrictions blocking `develop`
+
 #### Package Not Found After Publishing
 - PyPI indexing is usually instant, but wait a few seconds and retry
-- Verify package at https://pypi.org/project/azure-bootstrap/
+- Verify package at https://pypi.org/project/azure-bootstrap/ (stable) or
+  https://test.pypi.org/project/azure-bootstrap/ (dev builds)
 
 #### Workflow Not Running
 - Verify `.github/workflows/ci-cd.yml` exists
@@ -797,7 +838,7 @@ pip install 'azure-bootstrap[all]'
 
 #### Version Conflicts
 - Clear pip cache: `pip cache purge`
-- Install specific version: `pip install azure-bootstrap==2.0.0`
+- Install specific version: `pip install azure-bootstrap==3.0.0`
 
 ---
 

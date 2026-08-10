@@ -5,6 +5,38 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Infrastructure and documentation only — no runtime source changes, no public
+API surface change.
+
+### Added
+
+- CI: `validate-dev-installation` job — installs the exact
+  `3.0.0.devYYYYMMDDHHMMSS` build back from TestPyPI and asserts
+  `azure_bootstrap.__version__` matches what was built.
+
+### Changed
+
+- CI: `develop`-branch dev builds now publish to **TestPyPI** instead of PyPI
+  (`publish-dev` job, `environment: testpypi`, OIDC Trusted Publisher). The
+  public PyPI release history now contains only real releases; pre-releases are
+  no longer reachable via `pip install azure-bootstrap --pre`. Dev builds keep
+  their `.devN` version signature and are installable from
+  `https://test.pypi.org/simple/`.
+
+### Fixed
+
+- CI: anchored the dev-version `sed` rewrites (`^version = "..."$` /
+  `^__version__ = "..."$`) and added post-rewrite verification. The previous
+  unanchored expressions would also rewrite any other `version = "..."` line in
+  `pyproject.toml` (e.g. `target-version`), silently corrupting the build.
+- CI: `validate-installation` now installs the exact published version rather
+  than whatever PyPI resolves for a bare package name — closing a race where a
+  slow index would let the job validate the *previous* release and pass.
+- Docs: `CONTRIBUTING.md` referred throughout to a `dev` branch that does not
+  exist (the branch is `develop`), and claimed CI "doesn't publish" from it.
+
 ## [3.0.0] — 2026-06-29
 
 **Additive flagship release.** No existing import paths, symbols, signatures, or

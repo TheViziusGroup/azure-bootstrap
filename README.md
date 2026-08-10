@@ -691,14 +691,18 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 
 1. **Build & Test** - Installs dependencies, runs tests with coverage
 2. **Publish** - Uploads package to PyPI (main branch and tags only)
-3. **Validate** - Tests installation from feed
+3. **Publish Dev → TestPyPI** - Uploads the timestamped `.devN` build to
+   [TestPyPI](https://test.pypi.org/project/azure-bootstrap/) (develop branch
+   only), so the public PyPI history holds only real releases
+4. **Validate** - Installs the exact published version back from PyPI /
+   TestPyPI and verifies imports
 
 ### Triggers
 
-- **Push to main** → Stable release (e.g., `3.0.0`)
-- **Push to develop** → Development release with timestamp (e.g., `3.0.0.dev20260629123456`)
+- **Push to main** → Stable release to PyPI (e.g., `3.0.0`)
+- **Push to develop** → Development release to **TestPyPI** with timestamp (e.g., `3.0.0.dev20260629123456`)
 - **Pull requests** → Build and test only (no publish)
-- **Tags (v*)** → Tagged stable release
+- **Tags (v*)** → Tagged stable release to PyPI
 
 See [.github/workflows/ci-cd.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/ci-cd.yml) for workflow configuration.
 
