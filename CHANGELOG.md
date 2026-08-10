@@ -7,8 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Infrastructure and documentation only — no runtime source changes, no public
-API surface change.
+One runtime fix to `azure_bootstrap.health`; everything else is infrastructure
+and documentation. No import paths, symbols, or signatures changed.
 
 ### Added
 
@@ -28,11 +28,23 @@ API surface change.
   `all`, which remains the runtime aggregate. Build with
   `pip install -e ".[docs,all]"`.
 - CI: `validate-dev-installation` job — installs the exact
-  `3.0.0.devYYYYMMDDHHMMSS` build back from TestPyPI and asserts
+  `3.0.1.devYYYYMMDDHHMMSS` build back from TestPyPI and asserts
   `azure_bootstrap.__version__` matches what was built.
+- `azure-appconfiguration>=1.9.0` to `[project] dependencies`. It already
+  arrived transitively via `azure-appconfiguration-provider`, but
+  `azure_bootstrap.health` now imports it directly, so it is declared.
+- Tests covering the live branch of `check_app_config_health()` — connection
+  string, endpoint + credential, error truncation, and that the probe consumes
+  exactly one setting.
 
 ### Changed
 
+- `check_app_config_health()` now probes Azure App Configuration with
+  `AzureAppConfigurationClient` and pulls a single setting, instead of calling
+  the provider's `load()`. `load()` downloaded every setting **and resolved
+  Key Vault references** on each call, making a readiness probe as expensive as
+  a full bootstrap — and able to fail for reasons unrelated to whether App
+  Configuration is reachable.
 - `[project.urls] Documentation` now points at the documentation site rather
   than the GitHub README anchor.
 - CI: `develop`-branch dev builds now publish to **TestPyPI** instead of PyPI

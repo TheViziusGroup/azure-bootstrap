@@ -32,15 +32,23 @@ def check_app_config_health() -> dict[str, Any]:
     if not conn and not endpoint:
         return {"status": "not_configured"}
     try:
-        from azure.appconfiguration.provider import load  # type: ignore[import-not-found]
+        from azure.appconfiguration import (
+            AzureAppConfigurationClient,  # type: ignore[import-not-found]
+        )
         from azure.identity import DefaultAzureCredential  # type: ignore[import-not-found]
     except ImportError:
-        return {"status": "error", "message": "azure-appconfiguration-provider not installed"}
+        return {"status": "error", "message": "azure-appconfiguration not installed"}
     try:
         if conn:
-            load(connection_string=conn)
+            client = AzureAppConfigurationClient.from_connection_string(conn)
         else:
-            load(endpoint=endpoint, credential=DefaultAzureCredential())
+            client = AzureAppConfigurationClient(endpoint, DefaultAzureCredential())
+        # A readiness probe only needs to prove the endpoint answers and the
+        # credential is accepted. ``list_configuration_settings`` returns a lazy
+        # pager, so ``next(..., None)`` issues exactly one request and stops —
+        # unlike the provider's ``load()``, which pulls every setting and
+        # resolves Key Vault references on every probe.
+        next(iter(client.list_configuration_settings()), None)
         return {"status": "ok"}
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "message": str(exc)[:200]}
