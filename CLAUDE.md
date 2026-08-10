@@ -789,9 +789,9 @@ graph LR
 
 | Branch | Version Format | Example | Target index |
 |--------|---------------|---------|--------------|
-| `main` | Stable | `3.0.0` | PyPI |
+| `main` | Stable | `3.0.1` | PyPI |
 | `develop` | Dev + timestamp | `3.0.0.dev20260518123456` | TestPyPI |
-| `v*` tags | Stable | `3.0.0` | PyPI |
+| `v*` tags | Stable | `3.0.1` | PyPI |
 
 ### GitHub Actions Setup for PyPI Publishing
 
@@ -842,7 +842,7 @@ if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWit
 pip install azure-bootstrap
 
 # Install specific version
-pip install azure-bootstrap==3.0.0
+pip install azure-bootstrap==3.0.1
 
 # Install a dev build. These live on TestPyPI, NOT PyPI — `--pre` against PyPI
 # finds nothing, because PyPI now only ever holds real releases. TestPyPI does
@@ -899,7 +899,7 @@ GitHub Pages must be enabled once, by hand, before the first deploy:
 
 #### Version Conflicts
 - Clear pip cache: `pip cache purge`
-- Install specific version: `pip install azure-bootstrap==3.0.0`
+- Install specific version: `pip install azure-bootstrap==3.0.1`
 
 ---
 
@@ -911,6 +911,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), adhere
 
 The authoritative changelog lives at [CHANGELOG.md](CHANGELOG.md). The
 short summaries below are kept for AI-assistant context.
+
+> Note: this section skips 3.0.0 — see [CHANGELOG.md](CHANGELOG.md) for the
+> full v3 surface.
+
+### [3.0.1] - 2026-08-10
+
+Patch release. One runtime fix, plus documentation and CI infrastructure.
+
+- **Fixed**: `check_app_config_health()` probed App Configuration by calling
+  the provider's `load()`, which downloads every setting **and resolves every
+  Key Vault reference** — making a readiness probe as expensive as a full
+  bootstrap, and able to report the config store unhealthy because of an
+  unrelated Key Vault permission gap. It now uses
+  `AzureAppConfigurationClient` and pulls a single setting off the lazy pager.
+- **Added**: `azure-appconfiguration>=1.9.0` as a declared core dependency
+  (previously relied on the provider's transitive edge).
+- **Added**: documentation site at
+  <https://theviziusgroup.github.io/azure-bootstrap/> — MkDocs Material,
+  generated API reference via mkdocstrings, deployed by `.github/workflows/docs.yml`
+  on push to `main`. Assembled at build time from the repo-root markdown by
+  `docs/gen_pages.py`; nothing is duplicated into the tree.
+- **Added**: `docs` pip extra (not part of `all`).
+- **Changed**: `develop`-branch dev builds now publish to **TestPyPI**, not
+  PyPI. Public release history contains only real releases.
 
 ### [2.1.2] - 2026-06-29
 

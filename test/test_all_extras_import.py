@@ -57,10 +57,29 @@ def test_all_transport_factories_soft_noop() -> None:
     assert make_sumo_logic_handler() is None
 
 
+def test_version_matches_pyproject() -> None:
+    """``__version__`` must agree with ``[project] version``.
+
+    The version is hand-maintained in two places, and CI's dev-build step
+    rewrites both. Pinning a literal here just broke every release; asserting
+    the two copies agree tests the invariant that actually matters — and needs
+    no edit at release time.
+    """
+    import tomllib
+    from pathlib import Path
+
+    import azure_bootstrap as ab
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        declared = tomllib.load(fh)["project"]["version"]
+
+    assert ab.__version__ == declared
+
+
 def test_top_level_v3_exports() -> None:
     import azure_bootstrap as ab
 
-    assert ab.__version__ == "3.0.0"
     for name in (
         "configure_transports",
         "build_session",

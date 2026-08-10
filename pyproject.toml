@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azure-bootstrap"
-version = "3.0.0"
+version = "3.0.1"
 description = "Production-ready Azure bootstrap library for App Configuration, Key Vault, and App Insights integration"
 readme = "README.md"
 license = {text = "MIT"}
@@ -39,6 +39,10 @@ requires-python = ">=3.11"
 
 dependencies = [
     "azure-appconfiguration-provider>=1.0.0",
+    # Imported directly by azure_bootstrap.health for a cheap readiness probe.
+    # It also arrives transitively via the provider, but we import it, so we
+    # declare it.
+    "azure-appconfiguration>=1.9.0",
     "azure-keyvault-secrets>=4.7.0",
     "azure-identity>=1.15.0",
     "azure-monitor-opentelemetry>=1.2.0",
