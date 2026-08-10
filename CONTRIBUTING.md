@@ -55,10 +55,13 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install in editable mode with all dependencies
-pip install -e ".[dev]"
+pip install -e ".[dev,test,all,docs]"
 
 # Verify setup
 pytest
+
+# Verify the documentation site builds (optional, but CI gates on it)
+mkdocs build --strict
 ```
 
 ---
@@ -84,7 +87,9 @@ main (protected)
 
 - **Purpose**: Production-ready code only
 - **Protection**: Direct commits disabled, requires PR approval
-- **CI/CD**: Triggers automatic publish to PyPI
+- **CI/CD**: Triggers automatic publish to PyPI, and deploys the
+  [documentation site](https://theviziusgroup.github.io/azure-bootstrap/) to
+  GitHub Pages
 - **Tags**: All releases tagged here (e.g., `v1.0.0`)
 
 **Rules**:
@@ -423,6 +428,26 @@ radon mi azure_bootstrap/
 - ✅ README examples for new features
 - ✅ Version History entries in CLAUDE.md for all changes
 - ✅ CLAUDE.md updates for architectural changes
+- ✅ `mkdocs build --strict` passes (no warnings)
+
+#### Documentation Site
+
+Docstrings are not just for readers of the source — they are rendered into the
+[documentation site](https://theviziusgroup.github.io/azure-bootstrap/), which
+is assembled at build time from the repo-root markdown plus every package's
+docstrings. Two consequences for contributors:
+
+- **A new subpackage must be added to `[tool.setuptools] packages` in
+  `pyproject.toml`.** That list drives the API-reference navigation as well as
+  what ships in the wheel; omitting it means the package is missing from both.
+- **Edit the repo-root markdown, never a copy under `docs/`.** `README.md` is
+  the PyPI long description and must stay correct as read on GitHub;
+  `docs/gen_pages.py` adapts it for the site (rewriting links and translating
+  heading anchors). In particular, do not "fix" the emoji-prefixed anchors in
+  README's table of contents — they are correct for GitHub and are translated
+  automatically.
+
+Build it locally with `pip install -e ".[docs,all]"` then `mkdocs serve`.
 
 #### Docstring Format
 
@@ -758,6 +783,9 @@ git push origin feature/your-feature
    - Check the **GitHub Actions** CI/CD Pipeline runs successfully
    - Verify package published to PyPI
    - Confirm the `Validate Installation` job installed the exact new version
+   - Check the **Documentation** workflow deployed, and that
+     <https://theviziusgroup.github.io/azure-bootstrap/> shows the new version's
+     changelog entry
 
 8. **Announce Release**
    - Update documentation

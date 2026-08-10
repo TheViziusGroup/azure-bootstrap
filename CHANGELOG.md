@@ -12,12 +12,29 @@ API surface change.
 
 ### Added
 
+- **Documentation site** at <https://theviziusgroup.github.io/azure-bootstrap/>,
+  built with MkDocs Material and deployed by a new `docs.yml` workflow on every
+  push to `main` (pull requests build a downloadable preview but do not deploy).
+  It carries a generated API reference for all 45 public packages, rendered from
+  their docstrings and signatures by `mkdocstrings`/`griffe`.
+
+  The site is assembled at build time by `docs/gen_pages.py` from the existing
+  repo-root markdown — nothing is duplicated and nothing is committed by a docs
+  build. `README.md` and friends remain the single source of truth and stay
+  correct as read on GitHub and PyPI; the generator rewrites their links and
+  translates heading anchors between GitHub's and python-markdown's differing
+  slug rules.
+- New `docs` pip extra with the site toolchain. Deliberately **not** part of
+  `all`, which remains the runtime aggregate. Build with
+  `pip install -e ".[docs,all]"`.
 - CI: `validate-dev-installation` job — installs the exact
   `3.0.0.devYYYYMMDDHHMMSS` build back from TestPyPI and asserts
   `azure_bootstrap.__version__` matches what was built.
 
 ### Changed
 
+- `[project.urls] Documentation` now points at the documentation site rather
+  than the GitHub README anchor.
 - CI: `develop`-branch dev builds now publish to **TestPyPI** instead of PyPI
   (`publish-dev` job, `environment: testpypi`, OIDC Trusted Publisher). The
   public PyPI release history now contains only real releases; pre-releases are
@@ -36,6 +53,9 @@ API surface change.
   slow index would let the job validate the *previous* release and pass.
 - Docs: `CONTRIBUTING.md` referred throughout to a `dev` branch that does not
   exist (the branch is `develop`), and claimed CI "doesn't publish" from it.
+- Docs: `README.md` had an unclosed ```` ``` ```` fence in the "Run Tests"
+  section, which swallowed the `### Build Package` heading into the code block
+  and inverted every fence after it. This mis-rendered on both GitHub and PyPI.
 
 ## [3.0.0] — 2026-06-29
 

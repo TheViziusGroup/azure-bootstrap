@@ -117,13 +117,16 @@ azure-bootstrap/
 │   ├── function_app_example.py           # v1 reference (kept for back-compat)
 │   └── local.settings.json.example
 │
-├── docs/                             # Long-form usage guide
-│   └── USAGE.md                          # End-to-end Python + TypeScript/Next.js walkthrough (v2.1)
+├── docs/                             # Long-form usage guide + docs-site build
+│   ├── USAGE.md                          # End-to-end Python + TypeScript/Next.js walkthrough (v2.1)
+│   └── gen_pages.py                      # mkdocs-gen-files script: assembles the site (see below)
 │
-├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD
+├── mkdocs.yml                        # MkDocs Material config → GitHub Pages
+├── .github/workflows/ci-cd.yml       # GitHub Actions CI/CD (PyPI + TestPyPI)
+├── .github/workflows/docs.yml        # GitHub Actions docs build + Pages deploy
 ├── .githooks/                        # Git hooks (pre-commit, pre-push)
 ├── .vscode/                          # VS Code workspace config
-├── pyproject.toml                    # Package metadata + ~24 optional extras
+├── pyproject.toml                    # Package metadata + 40+ optional extras
 ├── MANIFEST.in                       # Distribution file control
 ├── README.md                         # Library overview + extras matrix
 ├── CHANGELOG.md                      # Release-by-release surface (v1.0.0, v2.0.0, v2.1.0)
@@ -325,6 +328,46 @@ twine upload dist/*
 # Or push to main (automated via pipeline)
 git push origin main
 ```
+
+### Documentation Site
+
+The site at <https://theviziusgroup.github.io/azure-bootstrap/> is built with
+MkDocs Material and deployed by `.github/workflows/docs.yml` on every push to
+`main`.
+
+```bash
+pip install -e ".[docs,all]"   # `all` matters — see below
+mkdocs serve                   # http://127.0.0.1:8000, live-reloads
+mkdocs build --strict          # what CI runs; any warning fails the build
+```
+
+**The repo-root markdown stays the single source of truth.** Nothing is
+duplicated into `docs/` and nothing is committed by a docs build. At build time
+`docs/gen_pages.py` (run by `mkdocs-gen-files`) reads `README.md`,
+`CHANGELOG.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `MIGRATING-*.md`, and
+`docs/USAGE.md` into an in-memory overlay, rewrites their links, and emits the
+API reference. Consequences worth knowing:
+
+- **Edit the root files, not `docs/`.** `README.md` is also the PyPI long
+  description and its links are bookmarked, so it must stay correct as read on
+  GitHub. The generator adapts it for the site rather than the reverse.
+- **Links are rewritten, not hand-maintained.** Absolute
+  `github.com/.../blob/main/…` URLs, root-relative paths, and `../`-relative
+  paths all resolve to in-site pages when the target is one of the pages above,
+  and stay pointed at GitHub otherwise. Anchors are translated only for in-site
+  targets — GitHub and python-markdown slugify headings differently
+  (`## 🚀 Quick Start` → `-quick-start` vs `quick-start`), so `gen_pages.py`
+  computes both slugs per heading rather than guessing. Do not "fix" emoji
+  anchors in the root markdown; they are correct for GitHub and translated for
+  the site.
+- **New subpackages must be added to `[tool.setuptools] packages`.** That list
+  drives the API-reference nav as well as what ships in the wheel, so an
+  omission now costs a missing docs page too — a useful extra signal.
+- **`docs/USAGE.md` is excluded from the site as-is** and republished as
+  `usage.md` with rewritten links. Both exist by design; edit `USAGE.md`.
+- **Balanced code fences matter.** An unclosed ```` ``` ```` swallows the
+  following headings, which breaks anchors silently. `mkdocs build --strict`
+  catches the fallout.
 
 ## Code Guidelines
 
@@ -596,7 +639,7 @@ pyjwt >= 2.13.0             # PYSEC-2026-175..179 (via msal; msal caps <3)
 Optional-extra CVE pins (v2.1.2): `pypdf>=6.13.3` (`[pdf-safety]`) and
 `starlette>=1.3.1` (`[fastapi]`/`[all]`).
 
-### Optional Dependencies (~24 extras)
+### Optional Dependencies (40+ extras)
 
 See [pyproject.toml](pyproject.toml) and the **Installation** table in
 [README.md](README.md) for the full extras matrix. Highlights:
@@ -638,7 +681,10 @@ pytest-mock >= 3.11.1
 | **azure_bootstrap/__init__.py** | Public API exports - ALWAYS update when adding public functions |
 | **pyproject.toml** | Package metadata, dependencies, build configuration |
 | **MANIFEST.in** | Controls what gets included in distribution |
-| **.github/workflows/ci-cd.yml** | GitHub Actions CI/CD workflow |
+| **.github/workflows/ci-cd.yml** | GitHub Actions CI/CD workflow (PyPI + TestPyPI) |
+| **.github/workflows/docs.yml** | Docs build + GitHub Pages deploy |
+| **mkdocs.yml** | Docs-site config (theme, nav, mkdocstrings options) |
+| **docs/gen_pages.py** | Assembles the site from root markdown + docstrings |
 | **README.md** | Library documentation, API reference, migration guide |
 | **CONTRIBUTING.md** | Git workflow, quality standards, tooling setup |
 
@@ -835,6 +881,21 @@ Reads like a permissions bug; it is almost always a claim mismatch:
 - Verify `.github/workflows/ci-cd.yml` exists
 - Check branch names match triggers (`main`, `develop`)
 - Enable Actions: **Settings** → **Actions** → **General** → "Allow all actions"
+
+#### `deploy-pages` 404 (Documentation workflow)
+GitHub Pages must be enabled once, by hand, before the first deploy:
+- **Settings** → **Pages** → **Source: GitHub Actions** (not "Deploy from a
+  branch")
+- The `build` job runs `actions/configure-pages@v5` first, which makes this
+  failure mode less cryptic, but it cannot enable Pages for you
+
+#### Docs build fails only in CI (`mkdocs build --strict`)
+- Reproduce with `pip install -e ".[docs,all]" && mkdocs build --strict`
+- Unresolved-alias warnings from griffe mean an optional third-party import
+  isn't installed; `all` omits `azure-cosmos` and `pypdf`, so try
+  `.[docs,all,pdf-safety,nosqllog-cosmos]`
+- Broken-anchor warnings usually mean a heading was renamed in one root
+  markdown file while another still links to the old slug
 
 #### Version Conflicts
 - Clear pip cache: `pip cache purge`

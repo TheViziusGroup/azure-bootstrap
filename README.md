@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/LICENSE)
 [![Code Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen.svg)]()
 [![CI/CD Pipeline](https://github.com/TheViziusGroup/azure-bootstrap/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TheViziusGroup/azure-bootstrap/actions)
+[![Documentation](https://img.shields.io/badge/docs-github.io-blue.svg)](https://theviziusgroup.github.io/azure-bootstrap/)
 
 ## 📦 What is This Repository?
 
@@ -316,6 +317,9 @@ The library exports ~40 top-level symbols and 30+ subpackages. Rather
 than duplicating the spec here, each module's public surface is documented
 in three places:
 
+- **[Full generated API reference](https://theviziusgroup.github.io/azure-bootstrap/reference/)**
+  — every package rendered from its docstrings and signatures, searchable,
+  rebuilt from `main` on every push.
 - **Module docstrings** — every `azure_bootstrap/<module>/__init__.py`
   opens with a docstring explaining the module's purpose and invariants.
 - **Per-symbol runnable examples** — [examples/](https://github.com/TheViziusGroup/azure-bootstrap/tree/main/examples/) covers every
@@ -429,6 +433,7 @@ docker run --rm -p 10000:10000 mcr.microsoft.com/azure-storage/azurite \
   azurite --skipApiVersionCheck -l /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
 pytest test/integration/ -m integration -v
 # Uses the official Azurite dev key by default (unset AZURITE_BLOB_CONNECTION_STRING if you exported a bad value)
+```
 
 ### Build Package
 
@@ -555,6 +560,7 @@ pip install azure-bootstrap --verbose
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
+| **[Documentation site](https://theviziusgroup.github.io/azure-bootstrap/)** | Everyone | All of the below, searchable, plus the generated API reference |
 | **README.md** | Everyone | Library overview (you are here) |
 | **[CHANGELOG.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/CHANGELOG.md)** | Everyone | Complete release-by-release surface |
 | **[MIGRATING-FROM-V1.md](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/MIGRATING-FROM-V1.md)** | v1 adopters | v1 → v2 upgrade path + adoption order |
@@ -629,7 +635,7 @@ azure-bootstrap/
 ├── .github/workflows/ci-cd.yml           # 🔄 GitHub Actions CI/CD
 ├── .githooks/                            # 🪝 Git hooks (pre-commit, pre-push)
 ├── .vscode/                              # 💻 VS Code workspace config
-├── pyproject.toml                        # ⚙️ Package metadata + ~24 optional extras
+├── pyproject.toml                        # ⚙️ Package metadata + 40+ optional extras
 ├── README.md                             # 👈 You are here
 ├── CHANGELOG.md                          # 📋 Full release surface
 ├── MIGRATING-FROM-V1.md                  # 🔀 v1 → v2 adoption guide
@@ -703,6 +709,14 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 - **Push to develop** → Development release to **TestPyPI** with timestamp (e.g., `3.0.0.dev20260629123456`)
 - **Pull requests** → Build and test only (no publish)
 - **Tags (v*)** → Tagged stable release to PyPI
+
+### Documentation Workflow
+
+A second workflow, [.github/workflows/docs.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/docs.yml),
+builds the MkDocs Material site and deploys it to GitHub Pages on every push to
+`main`. Pull requests build the site too (as a downloadable `docs-site-preview`
+artifact) but do not deploy. Nothing is committed — the site is assembled at
+build time from the repo-root markdown and the package docstrings.
 
 See [.github/workflows/ci-cd.yml](https://github.com/TheViziusGroup/azure-bootstrap/blob/main/.github/workflows/ci-cd.yml) for workflow configuration.
 
