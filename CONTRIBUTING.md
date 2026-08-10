@@ -55,10 +55,13 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install in editable mode with all dependencies
-pip install -e ".[dev]"
+pip install -e ".[dev,test,all,docs]"
 
 # Verify setup
 pytest
+
+# Verify the documentation site builds (optional, but CI gates on it)
+mkdocs build --strict
 ```
 
 ---
@@ -71,7 +74,7 @@ We use **Gitflow** with the following branch structure:
 
 ```
 main (protected)
-├── dev (protected)
+├── develop (protected)
     ├── feature/feature-name
     ├── bugfix/bug-description
     ├── hotfix/critical-fix
@@ -84,42 +87,45 @@ main (protected)
 
 - **Purpose**: Production-ready code only
 - **Protection**: Direct commits disabled, requires PR approval
-- **CI/CD**: Triggers automatic publish to PyPI
+- **CI/CD**: Triggers automatic publish to PyPI, and deploys the
+  [documentation site](https://theviziusgroup.github.io/azure-bootstrap/) to
+  GitHub Pages
 - **Tags**: All releases tagged here (e.g., `v1.0.0`)
 
 **Rules**:
-- ✅ Only merge from `dev` or `hotfix/*`
+- ✅ Only merge from `develop` or `hotfix/*`
 - ✅ Must pass all tests and quality checks
 - ✅ Requires 2 approvals
 - ❌ No direct commits
 - ❌ No force push
 
-#### 2. `dev` Branch (Development)
+#### 2. `develop` Branch (Development)
 
 - **Purpose**: Integration branch for features
 - **Protection**: Requires PR approval, runs tests
-- **CI/CD**: Runs tests but doesn't publish
+- **CI/CD**: Runs tests and publishes a timestamped dev build
+  (`3.0.0.devYYYYMMDDHHMMSS`) to **TestPyPI** — never to PyPI
 - **Merge From**: `feature/*`, `bugfix/*`, `release/*`
 
 **Rules**:
 - ✅ Merge features here first
 - ✅ Must pass all tests
 - ✅ Requires 1 approval
-- ❌ No direct commits to dev
+- ❌ No direct commits to `develop`
 - ❌ No force push
 
 #### 3. `feature/*` Branches
 
 - **Purpose**: New features and enhancements
 - **Naming**: `feature/short-description` (e.g., `feature/add-feature-flags`)
-- **Base**: Branch from `dev`
-- **Merge To**: `dev` via pull request
+- **Base**: Branch from `develop`
+- **Merge To**: `develop` via pull request
 
 **Lifecycle**:
 ```bash
 # Create feature branch
-git checkout dev
-git pull origin dev
+git checkout develop
+git pull origin develop
 git checkout -b feature/add-feature-flags
 
 # Make changes, commit often
@@ -128,21 +134,21 @@ git commit -m "feat: add feature flag support"
 
 # Push and create PR
 git push origin feature/add-feature-flags
-# Create PR: feature/add-feature-flags → dev
+# Create PR: feature/add-feature-flags → develop
 ```
 
 #### 4. `bugfix/*` Branches
 
 - **Purpose**: Non-critical bug fixes
 - **Naming**: `bugfix/short-description` (e.g., `bugfix/fix-config-loading`)
-- **Base**: Branch from `dev`
-- **Merge To**: `dev` via pull request
+- **Base**: Branch from `develop`
+- **Merge To**: `develop` via pull request
 
 **Lifecycle**:
 ```bash
 # Create bugfix branch
-git checkout dev
-git pull origin dev
+git checkout develop
+git pull origin develop
 git checkout -b bugfix/fix-config-loading
 
 # Fix bug, add test
@@ -151,7 +157,7 @@ git commit -m "fix: resolve config loading race condition"
 
 # Push and create PR
 git push origin bugfix/fix-config-loading
-# Create PR: bugfix/fix-config-loading → dev
+# Create PR: bugfix/fix-config-loading → develop
 ```
 
 #### 5. `hotfix/*` Branches
@@ -159,7 +165,7 @@ git push origin bugfix/fix-config-loading
 - **Purpose**: Critical production fixes
 - **Naming**: `hotfix/critical-issue` (e.g., `hotfix/auth-failure`)
 - **Base**: Branch from `main`
-- **Merge To**: BOTH `main` AND `dev`
+- **Merge To**: BOTH `main` AND `develop`
 
 **Lifecycle**:
 ```bash
@@ -178,10 +184,10 @@ git merge hotfix/auth-failure
 git tag v1.0.0
 git push origin main --tags
 
-# Then merge to dev
-git checkout dev
+# Then merge to develop
+git checkout develop
 git merge hotfix/auth-failure
-git push origin dev
+git push origin develop
 
 # Delete hotfix branch
 git branch -d hotfix/auth-failure
@@ -192,14 +198,14 @@ git push origin --delete hotfix/auth-failure
 
 - **Purpose**: Prepare new version for release
 - **Naming**: `release/v1.1.0`
-- **Base**: Branch from `dev`
-- **Merge To**: `main` and back to `dev`
+- **Base**: Branch from `develop`
+- **Merge To**: `main` and back to `develop`
 
 **Lifecycle**:
 ```bash
 # Create release branch
-git checkout dev
-git pull origin dev
+git checkout develop
+git pull origin develop
 git checkout -b release/v1.1.0
 
 # Update version numbers
@@ -216,10 +222,10 @@ git merge release/v1.1.0
 git tag v1.1.0
 git push origin main --tags
 
-# Merge back to dev
-git checkout dev
+# Merge back to develop
+git checkout develop
 git merge release/v1.1.0
-git push origin dev
+git push origin develop
 
 # Delete release branch
 git branch -d release/v1.1.0
@@ -422,6 +428,26 @@ radon mi azure_bootstrap/
 - ✅ README examples for new features
 - ✅ Version History entries in CLAUDE.md for all changes
 - ✅ CLAUDE.md updates for architectural changes
+- ✅ `mkdocs build --strict` passes (no warnings)
+
+#### Documentation Site
+
+Docstrings are not just for readers of the source — they are rendered into the
+[documentation site](https://theviziusgroup.github.io/azure-bootstrap/), which
+is assembled at build time from the repo-root markdown plus every package's
+docstrings. Two consequences for contributors:
+
+- **A new subpackage must be added to `[tool.setuptools] packages` in
+  `pyproject.toml`.** That list drives the API-reference navigation as well as
+  what ships in the wheel; omitting it means the package is missing from both.
+- **Edit the repo-root markdown, never a copy under `docs/`.** `README.md` is
+  the PyPI long description and must stay correct as read on GitHub;
+  `docs/gen_pages.py` adapts it for the site (rewriting links and translating
+  heading anchors). In particular, do not "fix" the emoji-prefixed anchors in
+  README's table of contents — they are correct for GitHub and are translated
+  automatically.
+
+Build it locally with `pip install -e ".[docs,all]"` then `mkdocs serve`.
 
 #### Docstring Format
 
@@ -572,10 +598,10 @@ After running tests with coverage, install the "Coverage Gutters" extension and 
 
 ```bash
 # Keep your branch updated
-git checkout dev
-git pull origin dev
+git checkout develop
+git pull origin develop
 git checkout feature/your-feature
-git merge dev
+git merge develop
 
 # Commit often with good messages
 git add specific-files  # Not git add .
@@ -601,7 +627,7 @@ ruff check azure_bootstrap/ test/
 - ✅ Documentation updated
 - ✅ Version History in CLAUDE.md updated
 - ✅ Examples added/updated if needed
-- ✅ Branch up to date with dev
+- ✅ Branch up to date with develop
 
 ```bash
 # Run full quality check
@@ -623,7 +649,7 @@ git push origin feature/your-feature
 
 # Create PR via GitHub CLI
 gh pr create \
-  --base dev \
+  --base develop \
   --title "feat: Add feature flag support" \
   --body "Implements feature flags using Azure App Configuration"
 ```
@@ -708,8 +734,8 @@ git push origin feature/your-feature
 
 1. **Create Release Branch**
    ```bash
-   git checkout dev
-   git pull origin dev
+   git checkout develop
+   git pull origin develop
    git checkout -b release/v1.1.0
    ```
 
@@ -746,17 +772,20 @@ git push origin feature/your-feature
    git push origin main --tags
    ```
 
-6. **Merge Back to Dev**
+6. **Merge Back to Develop**
    ```bash
-   git checkout dev
+   git checkout develop
    git merge release/v1.1.0
-   git push origin dev
+   git push origin develop
    ```
 
 7. **Verify Pipeline**
-   - Check Azure Pipeline runs successfully
+   - Check the **GitHub Actions** CI/CD Pipeline runs successfully
    - Verify package published to PyPI
-   - Test installation from feed
+   - Confirm the `Validate Installation` job installed the exact new version
+   - Check the **Documentation** workflow deployed, and that
+     <https://theviziusgroup.github.io/azure-bootstrap/> shows the new version's
+     changelog entry
 
 8. **Announce Release**
    - Update documentation
