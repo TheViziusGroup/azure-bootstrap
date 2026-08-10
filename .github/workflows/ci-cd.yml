@@ -170,10 +170,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           TAG="v${VERSION}"
 
-          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+          # Ask the REMOTE, not the local clone. `git rev-parse` only sees tags
+          # that were actually fetched, and `fetch-tags: true` on a shallow
+          # (fetch-depth: 1) checkout does not reliably bring them down — so the
+          # guard silently fell through and the push below failed with
+          # "already exists" on any push to main that didn't bump the version.
+          # That is the normal case for a docs-only change, which now redeploys
+          # the site from main.
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "Tag ${TAG} already exists — skipping (version was not bumped)."
             exit 0
           fi
