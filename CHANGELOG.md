@@ -5,7 +5,7 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.1] — 2026-08-10
 
 One runtime fix to `azure_bootstrap.health`; everything else is infrastructure
 and documentation. No import paths, symbols, or signatures changed.

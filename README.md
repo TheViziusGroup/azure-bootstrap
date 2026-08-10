@@ -13,7 +13,7 @@
 This repository contains the **source code and build configuration** for the `azure-bootstrap` pip library - a reusable bootstrap package used across 17+ Azure Functions repositories in the organization.
 
 **Package Name**: `azure-bootstrap`
-**Current Version**: `3.0.0`
+**Current Version**: `3.0.1`
 **Distribution**: PyPI (public)
 
 ## 🎯 Purpose
@@ -445,8 +445,8 @@ pip install build twine
 python -m build
 
 # Output:
-# dist/azure_bootstrap-3.0.0-py3-none-any.whl
-# dist/azure_bootstrap-3.0.0.tar.gz
+# dist/azure_bootstrap-3.0.1-py3-none-any.whl
+# dist/azure_bootstrap-3.0.1.tar.gz
 
 # Verify package
 twine check dist/*
@@ -460,7 +460,7 @@ pip install twine
 twine upload dist/*
 
 # Or automated via pipeline (preferred — uses OIDC Trusted Publisher)
-git tag v3.0.0
+git tag v3.0.1
 git push origin main --tags
 ```
 
@@ -705,7 +705,7 @@ The library uses GitHub Actions for continuous integration and deployment. The w
 
 ### Triggers
 
-- **Push to main** → Stable release to PyPI (e.g., `3.0.0`)
+- **Push to main** → Stable release to PyPI (e.g., `3.0.1`)
 - **Push to develop** → Development release to **TestPyPI** with timestamp (e.g., `3.0.0.dev20260629123456`)
 - **Pull requests** → Build and test only (no publish)
 - **Tags (v*)** → Tagged stable release to PyPI
@@ -732,7 +732,7 @@ For complete CI/CD setup instructions, see the CI/CD Setup section in [CLAUDE.md
 - **Minor (0.X.0)** — New features (backwards compatible)
 - **Patch (0.0.X)** — Bug fixes
 
-### Current Version: 3.0.0
+### Current Version: 3.0.1
 
 v3.0.0 is an **additive flagship** release: ten logging transports, DB/outbox,
 ACS email, HTTP client, AKS runtime, governance hooks, and the `azbootstrap`
