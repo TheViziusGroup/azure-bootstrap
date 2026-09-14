@@ -632,7 +632,7 @@ opentelemetry-instrumentation-azure-functions >= 0.45b0
 azure-core >= 1.38.0        # CVE-2026-21226
 filelock >= 3.20.3          # CVE-2025-68146, CVE-2026-22701
 urllib3 >= 2.7.0            # CVE-2026-21441 + CVE-2026-44431/44432
-cryptography >= 48.0.1,<49  # GHSA-537c-gmf6-5ccf (via azure-identity/msal; msal caps <49)
+cryptography >= 50.0.1,<51  # PYSEC-2026-3552/3553/3554 (via azure-identity/msal; msal caps <51)
 pyjwt >= 2.13.0             # PYSEC-2026-175..179 (via msal; msal caps <3)
 ```
 
@@ -789,9 +789,9 @@ graph LR
 
 | Branch | Version Format | Example | Target index |
 |--------|---------------|---------|--------------|
-| `main` | Stable | `3.0.1` | PyPI |
+| `main` | Stable | `3.0.2` | PyPI |
 | `develop` | Dev + timestamp | `3.0.0.dev20260518123456` | TestPyPI |
-| `v*` tags | Stable | `3.0.1` | PyPI |
+| `v*` tags | Stable | `3.0.2` | PyPI |
 
 ### GitHub Actions Setup for PyPI Publishing
 
@@ -842,7 +842,7 @@ if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWit
 pip install azure-bootstrap
 
 # Install specific version
-pip install azure-bootstrap==3.0.1
+pip install azure-bootstrap==3.0.2
 
 # Install a dev build. These live on TestPyPI, NOT PyPI — `--pre` against PyPI
 # finds nothing, because PyPI now only ever holds real releases. TestPyPI does
@@ -899,7 +899,7 @@ GitHub Pages must be enabled once, by hand, before the first deploy:
 
 #### Version Conflicts
 - Clear pip cache: `pip cache purge`
-- Install specific version: `pip install azure-bootstrap==3.0.1`
+- Install specific version: `pip install azure-bootstrap==3.0.2`
 
 ---
 

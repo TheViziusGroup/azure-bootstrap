@@ -5,6 +5,21 @@ All notable changes to the Azure Bootstrap library.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] — 2026-09-14
+
+Security patch. No source changes; one dependency floor moved.
+
+The core pin `cryptography>=48.0.1,<49` (added in 2.1.2 and kept under msal's
+cap at the time) now blocks every consumer from taking the fixes for
+PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7 `EnvelopedData` decryption,
+fixed in 50.0.0), PYSEC-2026-3553 (exponential chain building with duplicate
+self-signed intermediates, fixed in 49.0.0) and PYSEC-2026-3554
+(name-constraint escape via a wildcard SAN, fixed in 49.0.0). `msal` 1.38
+lifted its own cap to `<51`, so the pin is now `cryptography>=50.0.1,<51`.
+
+`azure-bootstrap` itself never imports `cryptography`; the floor exists only so
+that installing this library cannot leave a vulnerable transitive in place.
+
 ## [3.0.1] — 2026-08-10
 
 One runtime fix to `azure_bootstrap.health`; everything else is infrastructure
